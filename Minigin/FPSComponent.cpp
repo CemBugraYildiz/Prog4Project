@@ -65,6 +65,6 @@ void FPSComponent::Update()
 void FPSComponent::Render() const
 {
 	if (!m_textTexture || !m_owner) return;
-	const auto& pos = m_owner->GetTransform().GetPosition();
+	const auto pos = m_owner->GetWorldPosition();
 	Renderer::GetInstance().RenderTexture(*m_textTexture, pos.x, pos.y);
 }

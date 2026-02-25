@@ -11,6 +11,8 @@
 #include "TextObject.h"
 #include "Scene.h"
 #include "FPSComponent.h"
+#include "OrbitComponent.h"
+#include "GameObject.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -42,6 +44,27 @@ static void load()
 	// attach FPSComponent (owner passed automatically by AddComponent)
 	fpsGO->AddComponent<dae::FPSComponent>(fpsFont, SDL_Color{ 255, 255, 255, 255 });
 	scene.Add(std::move(fpsGO));
+
+	// --- Orbit demonstration ---
+	// Parent object orbits around a fixed center on screen
+	auto parent = std::make_unique<dae::GameObject>();
+	parent->SetTexture("peter.png");
+	// Orbit center roughly center-top area (tweak to taste)
+	parent->AddComponent<dae::OrbitComponent>(150.0f /*radius*/, 0.8f /*rad/s*/, false /*useParentAsCenter*/, glm::vec2{ 512.0f, 200.0f }, 0.0f);
+	// Add to scene as root
+	auto parentPtr = parent.get();
+	scene.Add(std::move(parent));
+
+	// Child object that orbits around parent (attached as child) — ladder.png
+	auto child = std::make_unique<dae::GameObject>();
+	child->SetTexture("ladder.png");
+	// initial local position relative to parent
+	child->SetPosition(60.0f, 0.0f);
+	// orbit around parent with a different speed and radius
+	child->AddComponent<dae::OrbitComponent>(60.0f /*radius*/, 2.5f /*rad/s*/, true /*useParentAsCenter*/, glm::vec2{ 0,0 }, 0.0f);
+
+	// Attach child to parent:
+	parentPtr->AttachChild(std::move(child));
 }
 
 int main(int, char*[]) {

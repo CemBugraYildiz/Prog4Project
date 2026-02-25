@@ -17,7 +17,20 @@ namespace dae
 		std::shared_ptr<Texture2D> m_texture{};
 		std::vector<std::unique_ptr<Component>> m_components{};
 
+		// Scenegraph
+			GameObject * m_parent{ nullptr };
+		std::vector<std::unique_ptr<GameObject>> m_children{};
+
+		// Dirty flag and cached world position
+		mutable bool m_isDirty{ true };
+		mutable glm::vec3 m_cachedWorldPosition{ 0.0f, 0.0f, 0.0f };
+
+		// Removal flag (deferred deletion)
+		bool m_markedForRemoval{ false };
+
 		void CleanupRemovedComponents() noexcept;
+		void CleanupRemovedChildren() noexcept;
+		void MarkTransformDirtyRecursive() noexcept;
 	public:
 		// Existing API
 		virtual void Update();
@@ -26,9 +39,25 @@ namespace dae
 		void SetTexture(const std::string& filename);
 		void SetPosition(float x, float y);
 
+		// mark for deletion (deferred)
+		void MarkForRemoval() noexcept { m_markedForRemoval = true; }
+		bool IsMarkedForRemoval() const noexcept { return m_markedForRemoval; }
+
 		// Transform accessor for components
 		Transform& GetTransform() noexcept { return m_transform; }
 		const Transform& GetTransform() const noexcept { return m_transform; }
+
+		// World position accessor (recomputes lazily using dirty flag)
+		glm::vec3 GetWorldPosition() const noexcept;
+		GameObject* GetParent() const noexcept { return m_parent; }
+
+		// Children API
+		// Attach a child; returns raw pointer to child (ownership is kept by parent)
+		GameObject* AttachChild(std::unique_ptr<GameObject> child);
+		// Detach child - ownership is transferred to caller. Returns nullptr if not found.
+		std::unique_ptr<GameObject> DetachChild(GameObject* child) noexcept;
+		// Iterate over children (returns vector of raw pointers)
+		std::vector<GameObject*> GetChildren() const noexcept;
 
 		// Component API
 		template<typename T, typename... Args>

@@ -4,6 +4,7 @@
 #include <string>
 #include <ctime>
 #include <chrono>
+#include <thread>
 
 #if WIN32
 // Avoid pollution from windows.h (min/max macros etc.)
@@ -86,6 +87,9 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 
 	Renderer::GetInstance().Init(g_window);
 	ResourceManager::GetInstance().Init(dataPath);
+
+	// initialize frame time baseline
+	m_lastFrameTime = std::chrono::steady_clock::now();
 }
 
 dae::Minigin::~Minigin()
@@ -103,15 +107,31 @@ void dae::Minigin::Run(const std::function<void()>& load)
 {
 	load();
 #ifndef __EMSCRIPTEN__
+	// native loop - cap to ~60 FPS to avoid runaway CPU usage and to make timing stable
+	constexpr std::chrono::duration<double, std::milli> targetFrameMs{ 16.6667 };
 	while (!m_quit)
+	{
+		const auto frameStart = std::chrono::steady_clock::now();
 		RunOneFrame();
+		const auto frameTime = std::chrono::steady_clock::now() - frameStart;
+		if (frameTime < targetFrameMs)
+		{
+			std::this_thread::sleep_for(targetFrameMs - frameTime);
+		}
+	}
 #else
+	// Emscripten provides browser-controlled main loop timing
 	emscripten_set_main_loop_arg(&LoopCallback, this, 0, true);
 #endif
 }
 
 void dae::Minigin::RunOneFrame()
 {
+
+	// Update the last-frame time (useful for components that may need delta later)
+	const auto now = std::chrono::steady_clock::now();
+	// store last-frame time for future use
+	m_lastFrameTime = now;
 
 	// Process input
 	m_quit = !InputManager::GetInstance().ProcessInput();

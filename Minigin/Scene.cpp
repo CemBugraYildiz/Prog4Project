@@ -11,34 +11,55 @@ void Scene::Add(std::unique_ptr<GameObject> object)
 
 void Scene::Remove(const GameObject& object)
 {
-	m_objects.erase(
-		std::remove_if(
-			m_objects.begin(),
-			m_objects.end(),
-			[&object](const auto& ptr) { return ptr.get() == &object; }
-		),
-		m_objects.end()
-	);
+	for (auto& obj : m_objects)
+	{
+		if (obj.get() == &object)
+		{
+			obj->MarkForRemoval();
+			break;
+		}
+	}
 }
 
 void Scene::RemoveAll()
 {
-	m_objects.clear();
+	for (auto& obj : m_objects)
+	{
+		if (obj)
+			obj->MarkForRemoval();
+	}
 }
 
 void Scene::Update()
 {
-	for(auto& object : m_objects)
+	for (auto& object : m_objects)
 	{
-		object->Update();
+		if (object && !object->IsMarkedForRemoval())
+			object->Update();
 	}
+
+	// After updating all objects, safely remove those marked for deletion
+	CleanupRemovedObjects();
 }
 
 void Scene::Render() const
 {
 	for (const auto& object : m_objects)
 	{
-		object->Render();
+		if (object && !object->IsMarkedForRemoval())
+			object->Render();
 	}
 }
 
+void Scene::CleanupRemovedObjects() noexcept
+{
+	for (auto it = m_objects.begin(); it != m_objects.end(); )
+	{
+		if (*it && (*it)->IsMarkedForRemoval())
+		{
+			it = m_objects.erase(it);
+		}
+		else
+			++it;
+	}
+}

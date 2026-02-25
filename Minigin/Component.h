@@ -8,8 +8,8 @@ namespace dae
 	class Component
 	{
 	protected:
-		friend class GameObject;
-		GameObject* m_owner{ nullptr };
+		// Owner pointer is immutable after construction
+		GameObject* const m_owner;
 		bool m_markedForRemoval{ false };
 		bool m_active{ true };
 
