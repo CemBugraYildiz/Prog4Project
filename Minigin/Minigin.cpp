@@ -94,6 +94,8 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 
 dae::Minigin::~Minigin()
 {
+	InputManager::GetInstance().ClearBindings();
+	SceneManager::GetInstance().DestroyAll();
 	Renderer::GetInstance().Destroy();
 	// Ensure resource manager frees textures/fonts and shuts down SDL_ttf
 	ResourceManager::GetInstance().Destroy();

@@ -20,8 +20,10 @@ RenderComponent::RenderComponent(GameObject* owner, std::shared_ptr<Texture2D> t
 
 void RenderComponent::Render() const
 {
-	if (!m_texture || !m_owner) return;
-	const auto& pos = m_owner->GetTransform().GetPosition();
+	if (!m_texture || !m_owner)
+		return;
+
+	const auto pos = m_owner->GetWorldPosition();
 	Renderer::GetInstance().RenderTexture(*m_texture, pos.x, pos.y);
 }
 

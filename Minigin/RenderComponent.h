@@ -6,14 +6,14 @@
 namespace dae
 {
 	class Texture2D;
+	class GameObject;
 
 	class RenderComponent final : public Component
 	{
 	public:
-		// Construct with filename (loads texture) or with shared_ptr<Texture2D>
 		RenderComponent(GameObject* owner, const std::string& filename);
 		RenderComponent(GameObject* owner, std::shared_ptr<Texture2D> texture) noexcept;
-		virtual ~RenderComponent() = default;
+		~RenderComponent() override = default;
 
 		void Update() override {}
 		void Render() const override;

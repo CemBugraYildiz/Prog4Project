@@ -13,6 +13,10 @@
 #include "FPSComponent.h"
 #include "OrbitComponent.h"
 #include "GameObject.h"
+#include "InputManager.h"
+#include "MoveCommand.h"
+#include "RenderComponent.h"
+#include "TextComponent.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -22,11 +26,11 @@ static void load()
 	auto& scene = dae::SceneManager::GetInstance().CreateScene();
 
 	auto go = std::make_unique<dae::GameObject>();
-	go->SetTexture("background.png");
+	go->AddComponent<dae::RenderComponent>("background.png");
 	scene.Add(std::move(go));
 
 	go = std::make_unique<dae::GameObject>();
-	go->SetTexture("logo.png");
+	go->AddComponent<dae::RenderComponent>("logo.png");
 	go->SetPosition(358, 180);
 	scene.Add(std::move(go));
 
@@ -45,26 +49,51 @@ static void load()
 	fpsGO->AddComponent<dae::FPSComponent>(fpsFont, SDL_Color{ 255, 255, 255, 255 });
 	scene.Add(std::move(fpsGO));
 
-	// --- Orbit demonstration ---
-	// Parent object orbits around a fixed center on screen
-	auto parent = std::make_unique<dae::GameObject>();
-	parent->SetTexture("peter.png");
-	// Orbit center roughly center-top area (tweak to taste)
-	parent->AddComponent<dae::OrbitComponent>(150.0f /*radius*/, 0.8f /*rad/s*/, false /*useParentAsCenter*/, glm::vec2{ 512.0f, 200.0f }, 0.0f);
-	// Add to scene as root
-	auto parentPtr = parent.get();
-	scene.Add(std::move(parent));
+	//Instructions
+	auto inst1 = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);
+	auto inst1To = std::make_unique<dae::TextObject>("Use the D-Pad to move the ladder", inst1
+	);
+	inst1To->SetColor({ 255, 255, 255, 255 });
+	inst1To->SetPosition(10, 80);
+	scene.Add(std::move(inst1To));
 
-	// Child object that orbits around parent (attached as child) — ladder.png
-	auto child = std::make_unique<dae::GameObject>();
-	child->SetTexture("ladder.png");
-	// initial local position relative to parent
-	child->SetPosition(60.0f, 0.0f);
-	// orbit around parent with a different speed and radius
-	child->AddComponent<dae::OrbitComponent>(60.0f /*radius*/, 2.5f /*rad/s*/, true /*useParentAsCenter*/, glm::vec2{ 0,0 }, 0.0f);
+	auto inst2 = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);
+	auto inst2To = std::make_unique<dae::TextObject>("Use the WASD to move Peter", inst2);
+	inst2To->SetColor({ 255, 255, 255, 255 });
+	inst2To->SetPosition(10, 100);
+	scene.Add(std::move(inst2To));
 
-	// Attach child to parent:
-	parentPtr->AttachChild(std::move(child));
+	// Character 1
+	auto player1 = std::make_unique<dae::GameObject>();
+	player1->AddComponent<dae::RenderComponent>("peter.png");
+	player1->SetPosition(200.f, 350.f);
+	auto* player1Ptr = player1.get();
+	scene.Add(std::move(player1));
+
+	// Character 2
+	auto player2 = std::make_unique<dae::GameObject>();
+	player2->AddComponent<dae::RenderComponent>("ladder.png");
+	player2->SetPosition(500.f, 350.f);
+	auto* player2Ptr = player2.get();
+	scene.Add(std::move(player2));
+
+	auto& input = dae::InputManager::GetInstance();
+	input.ClearBindings();
+
+	constexpr float speed1 = 2.f;
+	constexpr float speed2 = 4.f; // double speed
+
+	// WASD -> player 1
+	input.BindKeyboardCommand(SDL_SCANCODE_W, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, 0.f, -speed1));
+	input.BindKeyboardCommand(SDL_SCANCODE_S, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, 0.f, speed1));
+	input.BindKeyboardCommand(SDL_SCANCODE_A, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, -speed1, 0.f));
+	input.BindKeyboardCommand(SDL_SCANCODE_D, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, speed1, 0.f));
+
+	// Controller 0 DPad -> player 2
+	input.BindControllerCommand(0, dae::ControllerButton::DPadUp, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, -speed2));
+	input.BindControllerCommand(0, dae::ControllerButton::DPadDown, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, speed2));
+	input.BindControllerCommand(0, dae::ControllerButton::DPadLeft, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, -speed2, 0.f));
+	input.BindControllerCommand(0, dae::ControllerButton::DPadRight, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, speed2, 0.f));
 }
 
 int main(int, char*[]) {

@@ -19,8 +19,6 @@ GameObject::~GameObject()
 	// children are destroyed automatically (unique_ptr)
 	m_children.clear();
 
-	// Explicitly release texture (shared_ptr will decrease refcount)
-	m_texture.reset();
 }
 
 void GameObject::Update()
@@ -57,10 +55,6 @@ void GameObject::Render() const
 			comp->Render();
 	}
 
-	// Render this object's texture at its world position
-	const auto pos = GetWorldPosition();
-	if (m_texture)
-		Renderer::GetInstance().RenderTexture(*m_texture, pos.x, pos.y);
 
 	// Render children
 	for (const auto& child : m_children)
@@ -70,10 +64,6 @@ void GameObject::Render() const
 	}
 }
 
-void GameObject::SetTexture(const std::string& filename)
-{
-	m_texture = ResourceManager::GetInstance().LoadTexture(filename);
-}
 
 void GameObject::SetPosition(float x, float y)
 {
