@@ -13,14 +13,17 @@ namespace dae
 	{
 	public:
 		TextComponent(GameObject* owner, const std::string& text, std::shared_ptr<Font> font, const SDL_Color& color = { 255,255,255,255 });
-		virtual ~TextComponent() = default;
+		~TextComponent() override = default;
 
 		void Update() override;
 		void Render() const override;
 
 		void SetText(const std::string& text);
 		void SetColor(const SDL_Color& color);
+
 	private:
+		void RebuildTexture();
+
 		std::string m_text;
 		SDL_Color m_color{};
 		std::shared_ptr<Font> m_font{};

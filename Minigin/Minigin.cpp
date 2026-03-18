@@ -17,6 +17,13 @@
 #include <windows.h>
 #endif
 
+#ifdef USE_STEAMWORKS
+#pragma warning(push)
+#pragma warning(disable:4996)
+#include <steam_api.h>
+#pragma warning(pop)
+#endif
+
 #include <SDL3/SDL.h>
 //#include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -25,6 +32,7 @@
 #include "SceneManager.h"
 #include "Renderer.h"
 #include "ResourceManager.h"
+#include "EventQueue.h"
 
 SDL_Window* g_window{};
 
@@ -88,6 +96,12 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 	Renderer::GetInstance().Init(g_window);
 	ResourceManager::GetInstance().Init(dataPath);
 
+#ifdef USE_STEAMWORKS
+	if (!SteamAPI_Init())
+	{
+		throw std::runtime_error("Fatal Error - Steam must be running to play this game (SteamAPI_Init() failed).");
+	}
+#endif
 	// initialize frame time baseline
 	m_lastFrameTime = std::chrono::steady_clock::now();
 }
@@ -97,8 +111,13 @@ dae::Minigin::~Minigin()
 	InputManager::GetInstance().ClearBindings();
 	SceneManager::GetInstance().DestroyAll();
 	Renderer::GetInstance().Destroy();
+	EventQueue::GetInstance().Clear();
 	// Ensure resource manager frees textures/fonts and shuts down SDL_ttf
 	ResourceManager::GetInstance().Destroy();
+
+#ifdef USE_STEAMWORKS
+	SteamAPI_Shutdown();
+#endif
 
 	SDL_DestroyWindow(g_window);
 	g_window = nullptr;
@@ -137,11 +156,14 @@ void dae::Minigin::RunOneFrame()
 
 	// Process input
 	m_quit = !InputManager::GetInstance().ProcessInput();
-
 	// Update scene (GameObject::Update now updates components)
-	SceneManager::GetInstance().Update();
 
+#ifdef USE_STEAMWORKS
+	SteamAPI_RunCallbacks();
+#endif
+
+	SceneManager::GetInstance().Update();
+	EventQueue::GetInstance().ProcessEvents();
 	// Render everything
 	Renderer::GetInstance().Render();
-
 }
