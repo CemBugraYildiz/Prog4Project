@@ -18,6 +18,12 @@
 #include <utility>
 #include <vector>
 
+
+#if defined(__cpp_lib_parallel_algorithm) && __cpp_lib_parallel_algorithm >= 201603L
+#define HAS_EXECUTION_POLICIES 1
+#else
+#define HAS_EXECUTION_POLICIES 0
+#endif
 namespace
 {
     constexpr std::uint64_t kSteps = 100'000'000;
@@ -449,6 +455,7 @@ void RunPiBenchmarks()
     const auto asyncVersion = Measure("Async version", [] { return CalculatePiAsync(kSteps); });
     PrintResultBlock("Async version", asyncVersion.trimmedAverageMs, asyncVersion.pi);
 
+#if HAS_EXECUTION_POLICIES
     const auto seqVersion = Measure("STL version seq", [] { return CalculatePiWithPolicy(std::execution::seq, kSteps); });
     PrintResultBlock("STL version seq", seqVersion.trimmedAverageMs, seqVersion.pi);
 
@@ -460,4 +467,5 @@ void RunPiBenchmarks()
 
     const auto unseqVersion = Measure("STL version unseq", [] { return CalculatePiWithPolicy(std::execution::unseq, kSteps); });
     PrintResultBlock("STL version unseq", unseqVersion.trimmedAverageMs, unseqVersion.pi);
+#endif
 }
