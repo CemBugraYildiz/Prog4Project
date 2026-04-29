@@ -23,8 +23,14 @@
 #include "DamageCommand.h"
 #include "AddScoreCommand.h"
 #include "WinnerAchievementComponent.h"
+#include "ServiceLocator.h"
+#include "SoundIds.h"
+#include "PlaySoundCommand.h"
 
 #include <filesystem>
+#include "BenchmarkPi.h"
+#include <string>
+#include <iostream>
 namespace fs = std::filesystem;
 
 static void load()
@@ -65,7 +71,7 @@ static void load()
 	auto inst1GO = std::make_unique<dae::GameObject>();
 	inst1GO->SetPosition(10.f, 80.f);
 	inst1GO->AddComponent<dae::TextComponent>(
-		"Use the D-Pad to move the ladder, X to take damage, A/B to gain score",
+		"Use the D-Pad to move the ladder, X to inflict damage, A/B to gain score",
 		infoFont,
 		SDL_Color{ 255, 255, 255, 255 }
 	);
@@ -74,12 +80,20 @@ static void load()
 	auto inst2GO = std::make_unique<dae::GameObject>();
 	inst2GO->SetPosition(10.f, 100.f);
 	inst2GO->AddComponent<dae::TextComponent>(
-		"Use WASD to move Peter, C to take damage, Z/X to gain score",
+		"Use WASD to move Peter, C to inflict damage, Z/X to gain score",
 		infoFont,
 		SDL_Color{ 255, 255, 255, 255 }
 	);
 	scene.Add(std::move(inst2GO));
 
+	auto inst3GO = std::make_unique<dae::GameObject>();
+	inst3GO->SetPosition(10.f, 120.f);
+	inst3GO->AddComponent<dae::TextComponent>(
+		"For Keyboard use V key to open/close the main music, For Controller use Y button",
+		infoFont,
+		SDL_Color{ 255, 255, 255, 255 }
+	);
+	scene.Add(std::move(inst3GO));
 
 	// Character 1
 	auto player1 = std::make_unique<dae::GameObject>();
@@ -103,7 +117,7 @@ static void load()
 	// UI - Player 1 Lives
 	// -------------------------
 	auto p1LivesGO = std::make_unique<dae::GameObject>();
-	p1LivesGO->SetPosition(10.f, 140.f);
+	p1LivesGO->SetPosition(10.f, 150.f);
 	p1LivesGO->AddComponent<dae::TextComponent>(
 		"",
 		infoFont,
@@ -114,7 +128,7 @@ static void load()
 
 	// UI - Player 1 Score
 	auto p1ScoreGO = std::make_unique<dae::GameObject>();
-	p1ScoreGO->SetPosition(10.f, 165.f);
+	p1ScoreGO->SetPosition(10.f, 175.f);
 	p1ScoreGO->AddComponent<dae::TextComponent>(
 		"",
 		infoFont,
@@ -164,9 +178,21 @@ static void load()
 	input.BindKeyboardCommand(SDL_SCANCODE_A, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, -speed1, 0.f));
 	input.BindKeyboardCommand(SDL_SCANCODE_D, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, speed1, 0.f));
 	// Player 1 - test death / score
-	input.BindKeyboardCommand(SDL_SCANCODE_C, dae::InputState::Down, std::make_unique<dae::DamageCommand>(player1Ptr, 1));
+	auto cCmd = std::make_unique<dae::MultiCommand>();
+	cCmd->AddCommand(std::make_unique<dae::DamageCommand>(player2Ptr, 1));
+	cCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_HIT, 1.0f));
+	input.BindKeyboardCommand(SDL_SCANCODE_C, dae::InputState::Down, std::move(cCmd));
+
 	input.BindKeyboardCommand(SDL_SCANCODE_Z, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player1Ptr, 100));
-	input.BindKeyboardCommand(SDL_SCANCODE_X, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player1Ptr, 200));
+
+	auto xCmd = std::make_unique<dae::MultiCommand>();
+	xCmd->AddCommand(std::make_unique<dae::AddScoreCommand>(player1Ptr, 200));
+	xCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_COIN, 1.0f));
+	input.BindKeyboardCommand(SDL_SCANCODE_X, dae::InputState::Down, std::move(xCmd));
+
+
+	input.BindKeyboardCommand(SDL_SCANCODE_V,dae::InputState::Down,
+		std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY,0.5f, true));
 
 	// Controller 0 DPad -> player 2
 	input.BindControllerCommand(0, dae::ControllerButton::DPadUp, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, -speed2));
@@ -174,12 +200,49 @@ static void load()
 	input.BindControllerCommand(0, dae::ControllerButton::DPadLeft, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, -speed2, 0.f));
 	input.BindControllerCommand(0, dae::ControllerButton::DPadRight, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, speed2, 0.f));
 	// Player 2 - test death / score
-	input.BindControllerCommand(0, dae::ControllerButton::X, dae::InputState::Down, std::make_unique<dae::DamageCommand>(player2Ptr, 1));
+	auto ctrlXCmd = std::make_unique<dae::MultiCommand>();
+	ctrlXCmd->AddCommand(std::make_unique<dae::DamageCommand>(player1Ptr, 1));
+	ctrlXCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_HIT, 1.0f));
+	input.BindControllerCommand(0, dae::ControllerButton::X, dae::InputState::Down, std::move(ctrlXCmd));
+	
 	input.BindControllerCommand(0, dae::ControllerButton::A, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player2Ptr, 100));
-	input.BindControllerCommand(0, dae::ControllerButton::B, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player2Ptr, 200));
+
+	auto ctrlBCmd = std::make_unique<dae::MultiCommand>();
+	ctrlBCmd->AddCommand(std::make_unique<dae::AddScoreCommand>(player2Ptr, 200));
+	ctrlBCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_COIN, 1.0f));
+	input.BindControllerCommand(0, dae::ControllerButton::B, dae::InputState::Down, std::move(ctrlBCmd));
+
+	input.BindControllerCommand(0,dae::ControllerButton::Y,
+		dae::InputState::Down,std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
 }
 
-int main(int, char*[]) {
+int main(int argc, char* argv[]) {
+
+	std::cout.setf(std::ios::unitbuf);
+	std::cerr.setf(std::ios::unitbuf);
+
+	std::cerr << "Program started\n";
+
+	bool benchmarkMode = false; //for benchmarks make it true. You can also pass --benchmark as a command line argument to enable benchmark mode without changing the code.
+	for (int i = 1; i < argc; ++i)
+	{
+		if (std::string(argv[i]) == "--benchmark")
+		{
+			benchmarkMode = true;
+			break;
+		}
+	}
+
+	if (benchmarkMode)
+	{
+		std::cerr << "Benchmark mode entered\n";
+		RunPiBenchmarks();
+		std::cerr << "Benchmark finished\n";
+		return 0;
+	}
+
+	std::cerr << "Normal game mode start\n";
+
 #if __EMSCRIPTEN__
 	fs::path data_location = "";
 #else
@@ -187,6 +250,8 @@ int main(int, char*[]) {
 	if(!fs::exists(data_location))
 		data_location = "../Data/";
 #endif
+
+
 	dae::Minigin engine(data_location);
 	engine.Run(load);
     return 0;

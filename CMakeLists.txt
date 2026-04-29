@@ -29,7 +29,7 @@ add_executable(${TARGET_NAME} ${TARGET_PARAM}
   Minigin/Transform.cpp
   Minigin/RenderComponent.cpp
   Minigin/TextComponent.cpp
-  Minigin/FPSComponent.cpp   "Minigin/OrbitComponent.h" "Minigin/OrbitComponent.cpp" "Minigin/Command.h" "Minigin/Controller.h" "Minigin/Controller.cpp" "Minigin/MoveCommand.h" "Minigin/Event.h" "Minigin/IEventListener.h" "Minigin/EventQueue.h" "Minigin/EventQueue.cpp" "Minigin/HealthComponent.h" "Minigin/HealthComponent.cpp" "Minigin/ScoreComponent.h" "Minigin/ScoreComponent.cpp" "Minigin/LivesDisplayComponent.h" "Minigin/LivesDisplayComponent.cpp" "Minigin/ScoreDisplayComponent.h" "Minigin/ScoreDisplayComponent.cpp" "Minigin/DamageCommand.h" "Minigin/AddScoreCommand.h" "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp")
+  Minigin/FPSComponent.cpp   "Minigin/OrbitComponent.h" "Minigin/OrbitComponent.cpp" "Minigin/Command.h" "Minigin/Controller.h" "Minigin/Controller.cpp" "Minigin/MoveCommand.h" "Minigin/Event.h" "Minigin/IEventListener.h" "Minigin/EventQueue.h" "Minigin/EventQueue.cpp" "Minigin/HealthComponent.h" "Minigin/HealthComponent.cpp" "Minigin/ScoreComponent.h" "Minigin/ScoreComponent.cpp" "Minigin/LivesDisplayComponent.h" "Minigin/LivesDisplayComponent.cpp" "Minigin/ScoreDisplayComponent.h" "Minigin/ScoreDisplayComponent.cpp" "Minigin/DamageCommand.h" "Minigin/AddScoreCommand.h" "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/SoundSystem.h" "Minigin/ServiceLocator.h" "Minigin/SDLSoundSystem.h" "Minigin/SDLSoundSystem.cpp" "Minigin/SoundIds.h" "Minigin/PlaySoundCommand.h")
 
 # enable c++20 features
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_20)
@@ -105,6 +105,32 @@ if(NOT SDL3_ttf_FOUND)
     FetchContent_MakeAvailable(SDL3_ttf)
   endif()
 endif()
+
+# Add SDL3_mixer
+find_package(SDL3_mixer CONFIG QUIET)
+if(NOT SDL3_mixer_FOUND)
+  if (WIN32)
+    FetchContent_Declare(
+      SDL3_mixer
+      URL https://github.com/libsdl-org/SDL_mixer/releases/download/release-3.2.0/SDL3_mixer-devel-3.2.0-VC.zip
+      DOWNLOAD_NO_PROGRESS ON
+      DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+    )
+    FetchContent_MakeAvailable(SDL3_mixer)
+    list(PREPEND CMAKE_PREFIX_PATH "${sdl3_mixer_SOURCE_DIR}")
+    find_package(SDL3_mixer CONFIG REQUIRED)
+  else()
+    FetchContent_Declare(
+      SDL3_mixer
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer.git
+      GIT_TAG release-3.2.0
+      GIT_SHALLOW TRUE
+      GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(SDL3_mixer)
+  endif()
+endif()
+
 # ==============================
 # Dear ImGui
 # ==============================
@@ -126,7 +152,7 @@ add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
- "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp")
+ "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/PlaySoundCommand.h")
 
 target_include_directories(imgui PUBLIC
   ${imgui_SOURCE_DIR}
@@ -142,6 +168,7 @@ target_include_directories("${TARGET_NAME}" PUBLIC
   ${sdl3_SOURCE_DIR}/include
   ${sdl3_image_SOURCE_DIR}/include
   ${sdl3_ttf_SOURCE_DIR}/include
+  ${sdl3_mixer_SOURCE_DIR}/include
   ${imgui_SOURCE_DIR}
   ${VLD_INCLUDE_DIR}
 )
@@ -149,7 +176,9 @@ target_include_directories("${TARGET_NAME}" PUBLIC
 target_link_libraries("${TARGET_NAME}" PUBLIC 
   SDL3::SDL3 
   SDL3_ttf::SDL3_ttf
+  SDL3_mixer::SDL3_mixer
   imgui
+  glm::glm
   ${VLD_LIBRARIES}
 )
 
@@ -162,21 +191,10 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/steam")
 find_package(Steamworks QUIET)
 
-target_include_directories("${TARGET_NAME}" PUBLIC
-  ${CMAKE_SOURCE_DIR}/Minigin/
-  ${VLD_INCLUDE_DIR}
-)
-
-target_link_libraries("${TARGET_NAME}" PUBLIC
-  SDL3::SDL3
-  SDL3_ttf::SDL3_ttf
-  glm::glm
-  ${VLD_LIBRARIES}
-)
-
 if(MSVC)
   # compile at warning level 4 + treat warnings as errors
   target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
+  target_link_options(${TARGET_NAME} PRIVATE "/SUBSYSTEM:CONSOLE")
 else()
   target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -Werror)
 endif()
@@ -211,6 +229,7 @@ elseif(WIN32)
   set(SDL_RUNTIME_DLLS
     SDL3::SDL3
     SDL3_ttf::SDL3_ttf
+    SDL3_mixer::SDL3_mixer
   )
 
   foreach(dllTarget IN LISTS SDL_RUNTIME_DLLS)

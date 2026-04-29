@@ -5,6 +5,7 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include "BenchmarkPi.h"
 
 #if WIN32
 // Avoid pollution from windows.h (min/max macros etc.)
@@ -33,6 +34,9 @@
 #include "Renderer.h"
 #include "ResourceManager.h"
 #include "EventQueue.h"
+#include "ServiceLocator.h"
+#include "SDLSoundSystem.h"
+#include "SoundIds.h"
 
 SDL_Window* g_window{};
 
@@ -96,14 +100,14 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 	Renderer::GetInstance().Init(g_window);
 	ResourceManager::GetInstance().Init(dataPath);
 
-#ifdef USE_STEAMWORKS
-	if (!SteamAPI_Init())
-	{
-		throw std::runtime_error("Fatal Error - Steam must be running to play this game (SteamAPI_Init() failed).");
-	}
-#endif
-	// initialize frame time baseline
-	m_lastFrameTime = std::chrono::steady_clock::now();
+//#ifdef USE_STEAMWORKS
+//	if (!SteamAPI_Init())
+//	{
+//		throw std::runtime_error("Fatal Error - Steam must be running to play this game (SteamAPI_Init() failed).");
+//	}
+//#endif
+//	// initialize frame time baseline
+//	m_lastFrameTime = std::chrono::steady_clock::now();
 }
 
 dae::Minigin::~Minigin()
@@ -114,7 +118,6 @@ dae::Minigin::~Minigin()
 	EventQueue::GetInstance().Clear();
 	// Ensure resource manager frees textures/fonts and shuts down SDL_ttf
 	ResourceManager::GetInstance().Destroy();
-
 #ifdef USE_STEAMWORKS
 	SteamAPI_Shutdown();
 #endif
@@ -126,7 +129,15 @@ dae::Minigin::~Minigin()
 
 void dae::Minigin::Run(const std::function<void()>& load)
 {
+	auto soundSystem = std::make_unique<SDLSoundSystem>();
+	soundSystem->RegisterSound(dae::SOUND_HIT, "Data/Sounds/Bonus.wav");
+	soundSystem->RegisterSound(dae::SOUND_COIN, "Data/Sounds/Item_Appears.wav");
+	soundSystem->RegisterSound(dae::MUSIC_GAMEPLAY, "Data/Sounds/Game_Music.wav");
+	ServiceLocator::RegisterSoundSystem(std::move(soundSystem));
+
 	load();
+
+	ServiceLocator::GetSoundSystem().PlayMusic(dae::MUSIC_GAMEPLAY, 0.5f, true);
 #ifndef __EMSCRIPTEN__
 	// native loop - cap to ~60 FPS to avoid runaway CPU usage and to make timing stable
 	constexpr std::chrono::duration<double, std::milli> targetFrameMs{ 16.6667 };
