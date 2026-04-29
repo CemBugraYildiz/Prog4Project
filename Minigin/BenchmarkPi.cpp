@@ -1,5 +1,13 @@
 #include "BenchmarkPi.h"
 
+#ifdef __EMSCRIPTEN__
+
+void RunPiBenchmarks()
+{
+}
+
+#else
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -18,12 +26,12 @@
 #include <utility>
 #include <vector>
 
-
 #if defined(__cpp_lib_parallel_algorithm) && __cpp_lib_parallel_algorithm >= 201603L
 #define HAS_EXECUTION_POLICIES 1
 #else
 #define HAS_EXECUTION_POLICIES 0
 #endif
+
 namespace
 {
     constexpr std::uint64_t kSteps = 100'000'000;
@@ -60,7 +68,6 @@ namespace
         std::cout << line2.str() << "\n\n";
     }
 
-    // Simple counting iterator for transform_reduce
     class CountingIterator
     {
     public:
@@ -219,7 +226,6 @@ namespace
             std::memory_order_relaxed,
             std::memory_order_relaxed))
         {
-            // current is updated by compare_exchange_weak
         }
     }
 
@@ -414,7 +420,7 @@ namespace
         std::vector<double> samples;
         samples.reserve(runs);
 
-        (void)func(); // warm-up
+        (void)func();
 
         for (int i = 0; i < runs; ++i)
         {
@@ -469,3 +475,5 @@ void RunPiBenchmarks()
     PrintResultBlock("STL version unseq", unseqVersion.trimmedAverageMs, unseqVersion.pi);
 #endif
 }
+
+#endif 
