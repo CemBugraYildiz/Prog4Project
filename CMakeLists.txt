@@ -5,18 +5,8 @@ if(EMSCRIPTEN)
   message("Using Emscripten!")
 endif()
 
-if(EMSCRIPTEN)
-  set(TARGET_NAME minigin_web)
-  set(TARGET_PARAM )
-else()
-  set(TARGET_NAME minigin)
-  set(TARGET_PARAM WIN32)
-endif()
-
-# list source files here
-
-# Minigin engine as library
-add_library(minigin STATIC
+# Minigin Engine Library
+add_library(Minigin STATIC
   Minigin/Font.h
   Minigin/Font.cpp
   Minigin/GameObject.cpp
@@ -67,13 +57,13 @@ add_library(minigin STATIC
   Minigin/SDLSoundSystem.cpp
   Minigin/SoundIds.h
   Minigin/PlaySoundCommand.h
-   )
+)
 
-# enable c++20 features
-target_compile_features(minigin PUBLIC cxx_std_20)
+target_compile_features(Minigin PUBLIC cxx_std_20)
 
 include(FetchContent)
-# add glm
+
+# GLM
 find_package(glm CONFIG QUIET)
 if(NOT glm_FOUND)
   FetchContent_Declare(
@@ -85,7 +75,7 @@ if(NOT glm_FOUND)
   FetchContent_MakeAvailable(glm)
 endif()
 
-# Add SDL3
+# SDL3
 find_package(SDL3 3.4 CONFIG QUIET)
 if(NOT SDL3_FOUND)
   if (WIN32)
@@ -110,7 +100,7 @@ if(NOT SDL3_FOUND)
   endif()
 endif()
 
-# Add SDL3_ttf
+# SDL3_ttf
 find_package(SDL3_ttf 3.2.2 CONFIG QUIET)
 if(NOT SDL3_ttf_FOUND)
   if (WIN32)
@@ -144,7 +134,7 @@ if(NOT SDL3_ttf_FOUND)
   endif()
 endif()
 
-# Add SDL3_mixer
+# SDL3_mixer
 find_package(SDL3_mixer CONFIG QUIET)
 if(NOT SDL3_mixer_FOUND)
   if (WIN32)
@@ -169,10 +159,7 @@ if(NOT SDL3_mixer_FOUND)
   endif()
 endif()
 
-# ==============================
 # Dear ImGui
-# ==============================
-
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui
@@ -190,7 +177,7 @@ add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
- "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/PlaySoundCommand.h" )
+)
 
 target_include_directories(imgui PUBLIC
   ${imgui_SOURCE_DIR}
@@ -198,20 +185,19 @@ target_include_directories(imgui PUBLIC
 
 target_link_libraries(imgui PUBLIC SDL3::SDL3)
 target_compile_features(imgui PUBLIC cxx_std_20)
-# enable c++20 features
-target_compile_features(imgui PUBLIC cxx_std_20)
-target_include_directories(minigin PUBLIC 
+
+# Minigin Library Configuration
+target_include_directories(Minigin PUBLIC 
   ${CMAKE_SOURCE_DIR}/Minigin/
   ${glm_SOURCE_DIR}
   ${sdl3_SOURCE_DIR}/include
-  ${sdl3_image_SOURCE_DIR}/include
   ${sdl3_ttf_SOURCE_DIR}/include
   ${sdl3_mixer_SOURCE_DIR}/include
   ${imgui_SOURCE_DIR}
   ${VLD_INCLUDE_DIR}
 )
 
-target_link_libraries(minigin PUBLIC 
+target_link_libraries(Minigin PUBLIC 
   SDL3::SDL3 
   SDL3_ttf::SDL3_ttf
   SDL3_mixer::SDL3_mixer
@@ -221,7 +207,6 @@ target_link_libraries(minigin PUBLIC
 )
 
 if (WIN32)
-  # Add VLD (Visual Leak Detector) for memory leak detection on Windows
   find_package(VLD CONFIG)
 endif()
 
@@ -230,11 +215,32 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/steam")
 find_package(Steamworks QUIET)
 
 if(MSVC)
-  # compile at warning level 4 + treat warnings as errors
-  target_compile_options(minigin PRIVATE /W4 /WX)
+  target_compile_options(Minigin PRIVATE /W4 /WX)
 else()
-  target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -Werror)
+  target_compile_options(Minigin PRIVATE -Wall -Wextra -Werror)
 endif()
+
+# BurgerTime Game Project
+add_executable(BurgerTime
+  "BurgerTime/Game.cpp"
+  "BurgerTime/Enemy.h" 
+  "BurgerTime/Enemy.cpp"
+)
+
+target_link_libraries(BurgerTime PRIVATE Minigin)
+
+target_include_directories(BurgerTime PRIVATE
+  ${CMAKE_SOURCE_DIR}/Minigin
+  ${CMAKE_SOURCE_DIR}/BurgerTime
+)
+
+target_compile_features(BurgerTime PUBLIC cxx_std_20)
+
+if(MSVC)
+  target_compile_options(BurgerTime PRIVATE /W4)
+endif()
+
+# Platform-Specific Settings
 
 if(EMSCRIPTEN)
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
@@ -251,12 +257,14 @@ if(EMSCRIPTEN)
   )
 
 elseif(WIN32)
-  # Set minigin as the default startup project
-  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${TARGET_NAME})
-  # Set working directory to output folder
-  set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>")
+  # Windows
+  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT BurgerTime)
+  
+  set_target_properties(BurgerTime PROPERTIES 
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:BurgerTime>"
+  )
 
-  # Copy SDL dlls to output folder
+  # SDL DLLs
   set(SDL_RUNTIME_DLLS
     SDL3::SDL3
     SDL3_ttf::SDL3_ttf
@@ -265,108 +273,49 @@ elseif(WIN32)
 
   foreach(dllTarget IN LISTS SDL_RUNTIME_DLLS)
     add_custom_command(
-      TARGET ${TARGET_NAME} POST_BUILD
+      TARGET BurgerTime POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "$<TARGET_FILE:${dllTarget}>"
-          "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+          "$<TARGET_FILE_DIR:BurgerTime>"
       VERBATIM
     )
   endforeach()
 
+  # Steamworks
   if(Steamworks_FOUND)
-    target_link_libraries("${TARGET_NAME}" PUBLIC Steamworks::Steamworks)
-    target_compile_definitions(${TARGET_NAME} PRIVATE USE_STEAMWORKS)
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy "${Steamworks_RUNTIME_DLL}" "$<TARGET_FILE_DIR:${TARGET_NAME}>")
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E echo "480" > "$<TARGET_FILE_DIR:${TARGET_NAME}>/steam_appid.txt"
+    target_link_libraries(BurgerTime PUBLIC Steamworks::Steamworks)
+    target_compile_definitions(BurgerTime PRIVATE USE_STEAMWORKS)
+    add_custom_command(TARGET BurgerTime POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy "${Steamworks_RUNTIME_DLL}" "$<TARGET_FILE_DIR:BurgerTime>"
+    )
+    add_custom_command(TARGET BurgerTime POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E echo "480" > "$<TARGET_FILE_DIR:BurgerTime>/steam_appid.txt"
       COMMENT "Generating steam_appid.txt"
     )
   endif()
 
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/Data" "$<TARGET_FILE_DIR:${TARGET_NAME}>/Data"
+  add_custom_command(TARGET BurgerTime POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory 
+    "${CMAKE_CURRENT_SOURCE_DIR}/Data" 
+    "$<TARGET_FILE_DIR:BurgerTime>/Data"
   )
+
 elseif(APPLE)
-  set_target_properties(${TARGET_NAME} PROPERTIES
+  set_target_properties(BurgerTime PROPERTIES
     MACOSX_BUNDLE TRUE
     INSTALL_RPATH "@executable_path/../Frameworks"
     BUILD_WITH_INSTALL_RPATH TRUE
   )
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:SDL3::SDL3-shared>" "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:SDL3_ttf::SDL3_ttf-shared>" "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
-    COMMAND install_name_tool -change "@rpath/libSDL3_ttf.0.dylib" "@executable_path/../Frameworks/libSDL3_ttf.0.2.2.dylib" "$<TARGET_FILE:${TARGET_NAME}>"
-    COMMAND install_name_tool -change "@rpath/libSDL3.0.dylib" "@executable_path/../Frameworks/libSDL3.0.dylib" "$<TARGET_FILE:${TARGET_NAME}>"
-  )
 
-  if(Steamworks_FOUND)
-    target_link_libraries("${TARGET_NAME}" PUBLIC Steamworks::Steamworks)
-    target_compile_definitions(${TARGET_NAME} PRIVATE USE_STEAMWORKS)
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${Steamworks_LIBRARIES}" "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
-    )
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E echo "480" > "$<TARGET_FILE_DIR:${TARGET_NAME}>/steam_appid.txt"
-      COMMENT "Generating steam_appid.txt"
-    )
-  endif()
-
-  # Copy Data folder to output directory after build
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/Data" "$<TARGET_FILE_DIR:${TARGET_NAME}>/Data"
-  )
 else()
- if(Steamworks_FOUND)
-    target_link_libraries("${TARGET_NAME}" PUBLIC Steamworks::Steamworks)
-    target_compile_definitions(${TARGET_NAME} PRIVATE USE_STEAMWORKS)
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${Steamworks_LIBRARIES}" "$<TARGET_FILE_DIR:${TARGET_NAME}>"
-    )
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E echo "480" > "$<TARGET_FILE_DIR:${TARGET_NAME}>/steam_appid.txt"
-      COMMENT "Generating steam_appid.txt"
-    )
+  if(Steamworks_FOUND)
+    target_link_libraries(BurgerTime PUBLIC Steamworks::Steamworks)
+    target_compile_definitions(BurgerTime PRIVATE USE_STEAMWORKS)
   endif()
 
-  # Copy Data folder to output directory after build
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/Data" "$<TARGET_FILE_DIR:${TARGET_NAME}>/Data"
-  )
-endif()
-# ==============================
-# BurgerTime Game Project
-# ==============================
-
-# BurgerTime executable
-add_executable(BurgerTime
-  "BurgerTime/Game.cpp"
-    "BurgerTime/Enemy.h" "BurgerTime/Enemy.cpp")
-
-target_link_libraries(BurgerTime PRIVATE minigin)
-
-target_include_directories(BurgerTime PRIVATE
-  ${CMAKE_SOURCE_DIR}/minigin
-  ${CMAKE_SOURCE_DIR}/BurgerTime
-)
-
-target_compile_features(BurgerTime PUBLIC cxx_std_20)
-
-if(MSVC)
-  target_compile_options(BurgerTime PRIVATE /W4 /WX)
-endif()
-
-if(WIN32)
-  set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT BurgerTime)
-  
-  set_target_properties(BurgerTime PROPERTIES 
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:BurgerTime>"
-  )
-  
   add_custom_command(TARGET BurgerTime POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory 
-    "${CMAKE_SOURCE_DIR}/Data" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/Data" 
     "$<TARGET_FILE_DIR:BurgerTime>/Data"
   )
 endif()
