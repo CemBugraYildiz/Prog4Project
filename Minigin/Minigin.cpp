@@ -112,6 +112,8 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 
 dae::Minigin::~Minigin()
 {
+	ServiceLocator::GetSoundSystem().StopAll();
+	ServiceLocator::RegisterSoundSystem(nullptr);
 	InputManager::GetInstance().ClearBindings();
 	SceneManager::GetInstance().DestroyAll();
 	Renderer::GetInstance().Destroy();

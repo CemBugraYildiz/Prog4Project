@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <atomic>
 
 namespace dae
 {
@@ -47,6 +48,7 @@ namespace dae
                 return;
             }
 
+            m_IsRunning = true;
             m_Thread = std::jthread(&Impl::WorkerThread, this);
             std::cout << "Sound System initialized on thread: "
                 << m_Thread.get_id() << "\n";
@@ -54,27 +56,46 @@ namespace dae
 
         ~Impl()
         {
+            std::cout << "SDLSoundSystem::Impl destructor called\n";
+
             {
                 std::lock_guard<std::mutex> queueLock(m_QueueMutex);
+                m_IsRunning = false;
                 m_EventQueue.push({ SoundEventType::Quit });
             }
             m_CondVar.notify_one();
 
+            if (m_Thread.joinable())
+            {
+                m_Thread.join();
+                std::cout << "Worker thread joined\n";
+            }
+
+            std::lock_guard<std::mutex> audioLock(m_AudioMutex);
+
             if (m_pMusicTrack)
             {
+                MIX_StopTrack(m_pMusicTrack, 0);
                 MIX_DestroyTrack(m_pMusicTrack);
                 m_pMusicTrack = nullptr;
             }
 
             for (auto& track : m_ActiveTracks)
             {
-                MIX_DestroyTrack(track);
+                if (track)
+                {
+                    MIX_StopTrack(track, 0);
+                    MIX_DestroyTrack(track);
+                }
             }
             m_ActiveTracks.clear();
 
             for (auto& [id, audio] : m_AudioMap)
             {
-                MIX_DestroyAudio(audio);
+                if (audio)
+                {
+                    MIX_DestroyAudio(audio);
+                }
             }
             m_AudioMap.clear();
 
@@ -85,10 +106,13 @@ namespace dae
             }
 
             MIX_Quit();
+            std::cout << "Sound System cleaned up\n";
         }
 
         void AddEvent(SoundEvent event)
         {
+            if (!m_IsRunning) return;
+
             {
                 std::lock_guard<std::mutex> queueLock(m_QueueMutex);
                 m_EventQueue.push(std::move(event));
@@ -127,7 +151,7 @@ namespace dae
             std::cout << "Worker thread started: "
                 << std::this_thread::get_id() << "\n";
 
-            while (true)
+            while (m_IsRunning)
             {
                 SoundEvent event{};
 
@@ -135,12 +159,19 @@ namespace dae
                     std::unique_lock<std::mutex> queueLock(m_QueueMutex);
                     m_CondVar.wait(queueLock, [this]
                         {
-                            return !m_EventQueue.empty();
+                            return !m_EventQueue.empty() || !m_IsRunning;
                         });
+
+                    if (!m_IsRunning && m_EventQueue.empty())
+                        break;
+
+                    if (m_EventQueue.empty())
+                        continue;
 
                     event = m_EventQueue.front();
                     m_EventQueue.pop();
                 }
+
                 switch (event.type)
                 {
                 case SoundEventType::Play:
@@ -156,18 +187,19 @@ namespace dae
                     HandleStopAll();
                     break;
                 case SoundEventType::Quit:
-                    std::cout << "Worker thread stopping.\n";
+                    std::cout << "Worker thread received Quit event.\n";
                     return;
                 }
             }
-        }
 
+            std::cout << "Worker thread stopped.\n";
+        }
 
         void HandlePlay(SoundId id, float volume)
         {
             std::lock_guard<std::mutex> audioLock(m_AudioMutex);
 
-            if (!m_pMixer) return;
+            if (!m_pMixer || !m_IsRunning) return;
 
             auto it = m_AudioMap.find(id);
             if (it == m_AudioMap.end())
@@ -211,7 +243,7 @@ namespace dae
         {
             std::lock_guard<std::mutex> audioLock(m_AudioMutex);
 
-            if (!m_pMixer) return;
+            if (!m_pMixer || !m_IsRunning) return;
 
             if (m_pMusicTrack)
             {
@@ -295,7 +327,10 @@ namespace dae
 
             for (auto& track : m_ActiveTracks)
             {
-                MIX_DestroyTrack(track);
+                if (track)
+                {
+                    MIX_DestroyTrack(track);
+                }
             }
             m_ActiveTracks.clear();
         }
@@ -308,6 +343,8 @@ namespace dae
                     m_ActiveTracks.end(),
                     [](MIX_Track* track)
                     {
+                        if (!track) return true;
+
                         bool finished = !MIX_TrackPlaying(track) &&
                             !MIX_TrackPaused(track);
                         if (finished)
@@ -334,6 +371,7 @@ namespace dae
         std::mutex                  m_AudioMutex{};
 
         std::jthread                m_Thread{};
+        std::atomic<bool>           m_IsRunning{ false };
     };
 
     SDLSoundSystem::SDLSoundSystem()

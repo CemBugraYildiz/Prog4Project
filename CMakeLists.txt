@@ -14,11 +14,15 @@ else()
 endif()
 
 # list source files here
-add_executable(${TARGET_NAME} ${TARGET_PARAM}
+
+# Minigin engine as library
+add_library(minigin STATIC
+  Minigin/Font.h
   Minigin/Font.cpp
   Minigin/GameObject.cpp
+  Minigin/GameObject.h
   Minigin/InputManager.cpp
-  Minigin/Main.cpp
+  Minigin/InputManager.h
   Minigin/Minigin.cpp
   Minigin/Renderer.cpp
   Minigin/ResourceManager.cpp
@@ -29,10 +33,44 @@ add_executable(${TARGET_NAME} ${TARGET_PARAM}
   Minigin/Transform.cpp
   Minigin/RenderComponent.cpp
   Minigin/TextComponent.cpp
-  Minigin/FPSComponent.cpp   "Minigin/OrbitComponent.h" "Minigin/OrbitComponent.cpp" "Minigin/Command.h" "Minigin/Controller.h" "Minigin/Controller.cpp" "Minigin/MoveCommand.h" "Minigin/Event.h" "Minigin/IEventListener.h" "Minigin/EventQueue.h" "Minigin/EventQueue.cpp" "Minigin/HealthComponent.h" "Minigin/HealthComponent.cpp" "Minigin/ScoreComponent.h" "Minigin/ScoreComponent.cpp" "Minigin/LivesDisplayComponent.h" "Minigin/LivesDisplayComponent.cpp" "Minigin/ScoreDisplayComponent.h" "Minigin/ScoreDisplayComponent.cpp" "Minigin/DamageCommand.h" "Minigin/AddScoreCommand.h" "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/SoundSystem.h" "Minigin/ServiceLocator.h" "Minigin/SDLSoundSystem.h" "Minigin/SDLSoundSystem.cpp" "Minigin/SoundIds.h" "Minigin/PlaySoundCommand.h")
+  Minigin/FPSComponent.cpp
+  Minigin/FPSComponent.h
+  Minigin/OrbitComponent.h
+  Minigin/OrbitComponent.cpp
+  Minigin/Command.h
+  Minigin/Component.h
+  Minigin/Controller.h
+  Minigin/Controller.cpp
+  Minigin/MoveCommand.h
+  Minigin/Event.h
+  Minigin/IEventListener.h
+  Minigin/EventQueue.h
+  Minigin/EventQueue.cpp
+  Minigin/HealthComponent.h
+  Minigin/HealthComponent.cpp
+  Minigin/ScoreComponent.h
+  Minigin/ScoreComponent.cpp
+  Minigin/LivesDisplayComponent.h
+  Minigin/LivesDisplayComponent.cpp
+  Minigin/ScoreDisplayComponent.h
+  Minigin/ScoreDisplayComponent.cpp
+  Minigin/Singleton.h
+  Minigin/DamageCommand.h
+  Minigin/AddScoreCommand.h
+  Minigin/WinnerAchievementComponent.h
+  Minigin/WinnerAchievementComponent.cpp
+  Minigin/BenchmarkPi.h
+  Minigin/BenchmarkPi.cpp
+  Minigin/SoundSystem.h
+  Minigin/ServiceLocator.h
+  Minigin/SDLSoundSystem.h
+  Minigin/SDLSoundSystem.cpp
+  Minigin/SoundIds.h
+  Minigin/PlaySoundCommand.h
+   )
 
 # enable c++20 features
-target_compile_features(${TARGET_NAME} PUBLIC cxx_std_20)
+target_compile_features(minigin PUBLIC cxx_std_20)
 
 include(FetchContent)
 # add glm
@@ -152,7 +190,7 @@ add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
- "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/PlaySoundCommand.h")
+ "Minigin/WinnerAchievementComponent.h" "Minigin/WinnerAchievementComponent.cpp" "Minigin/BenchmarkPi.h" "Minigin/BenchmarkPi.cpp" "Minigin/PlaySoundCommand.h" )
 
 target_include_directories(imgui PUBLIC
   ${imgui_SOURCE_DIR}
@@ -162,7 +200,7 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3)
 target_compile_features(imgui PUBLIC cxx_std_20)
 # enable c++20 features
 target_compile_features(imgui PUBLIC cxx_std_20)
-target_include_directories("${TARGET_NAME}" PUBLIC 
+target_include_directories(minigin PUBLIC 
   ${CMAKE_SOURCE_DIR}/Minigin/
   ${glm_SOURCE_DIR}
   ${sdl3_SOURCE_DIR}/include
@@ -173,7 +211,7 @@ target_include_directories("${TARGET_NAME}" PUBLIC
   ${VLD_INCLUDE_DIR}
 )
 
-target_link_libraries("${TARGET_NAME}" PUBLIC 
+target_link_libraries(minigin PUBLIC 
   SDL3::SDL3 
   SDL3_ttf::SDL3_ttf
   SDL3_mixer::SDL3_mixer
@@ -193,8 +231,7 @@ find_package(Steamworks QUIET)
 
 if(MSVC)
   # compile at warning level 4 + treat warnings as errors
-  target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
-  target_link_options(${TARGET_NAME} PRIVATE "/SUBSYSTEM:CONSOLE")
+  target_compile_options(minigin PRIVATE /W4 /WX)
 else()
   target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -Werror)
 endif()
@@ -302,5 +339,40 @@ else()
   # Copy Data folder to output directory after build
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/Data" "$<TARGET_FILE_DIR:${TARGET_NAME}>/Data"
+  )
+endif()
+# ==============================
+# BurgerTime Game Project
+# ==============================
+
+# BurgerTime executable
+add_executable(BurgerTime
+  "BurgerTime/Game.cpp"
+    "BurgerTime/Enemy.h" "BurgerTime/Enemy.cpp")
+
+target_link_libraries(BurgerTime PRIVATE minigin)
+
+target_include_directories(BurgerTime PRIVATE
+  ${CMAKE_SOURCE_DIR}/minigin
+  ${CMAKE_SOURCE_DIR}/BurgerTime
+)
+
+target_compile_features(BurgerTime PUBLIC cxx_std_20)
+
+if(MSVC)
+  target_compile_options(BurgerTime PRIVATE /W4 /WX)
+endif()
+
+if(WIN32)
+  set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT BurgerTime)
+  
+  set_target_properties(BurgerTime PROPERTIES 
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:BurgerTime>"
+  )
+  
+  add_custom_command(TARGET BurgerTime POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory 
+    "${CMAKE_SOURCE_DIR}/Data" 
+    "$<TARGET_FILE_DIR:BurgerTime>/Data"
   )
 endif()

@@ -26,6 +26,7 @@
 #include "ServiceLocator.h"
 #include "SoundIds.h"
 #include "PlaySoundCommand.h"
+#include "Enemy.h"
 
 #include <filesystem>
 #include "BenchmarkPi.h"
@@ -191,8 +192,8 @@ static void load()
 	input.BindKeyboardCommand(SDL_SCANCODE_X, dae::InputState::Down, std::move(xCmd));
 
 
-	input.BindKeyboardCommand(SDL_SCANCODE_V,dae::InputState::Down,
-		std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY,0.5f, true));
+	input.BindKeyboardCommand(SDL_SCANCODE_V, dae::InputState::Down,
+		std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
 
 	// Controller 0 DPad -> player 2
 	input.BindControllerCommand(0, dae::ControllerButton::DPadUp, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, -speed2));
@@ -204,7 +205,7 @@ static void load()
 	ctrlXCmd->AddCommand(std::make_unique<dae::DamageCommand>(player1Ptr, 1));
 	ctrlXCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_HIT, 1.0f));
 	input.BindControllerCommand(0, dae::ControllerButton::X, dae::InputState::Down, std::move(ctrlXCmd));
-	
+
 	input.BindControllerCommand(0, dae::ControllerButton::A, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player2Ptr, 100));
 
 	auto ctrlBCmd = std::make_unique<dae::MultiCommand>();
@@ -212,8 +213,8 @@ static void load()
 	ctrlBCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_COIN, 1.0f));
 	input.BindControllerCommand(0, dae::ControllerButton::B, dae::InputState::Down, std::move(ctrlBCmd));
 
-	input.BindControllerCommand(0,dae::ControllerButton::Y,
-		dae::InputState::Down,std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
+	input.BindControllerCommand(0, dae::ControllerButton::Y,
+		dae::InputState::Down, std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
 }
 
 int main(int argc, char* argv[]) {
@@ -247,12 +248,12 @@ int main(int argc, char* argv[]) {
 	fs::path data_location = "";
 #else
 	fs::path data_location = "./Data/";
-	if(!fs::exists(data_location))
+	if (!fs::exists(data_location))
 		data_location = "../Data/";
 #endif
 
 
 	dae::Minigin engine(data_location);
 	engine.Run(load);
-    return 0;
+	return 0;
 }
