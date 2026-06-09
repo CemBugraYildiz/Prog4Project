@@ -86,4 +86,25 @@ void dae::Renderer::RenderTexture(const Texture2D& texture, const float x, const
 	SDL_RenderTexture(GetSDLRenderer(), texture.GetSDLTexture(), nullptr, &dst);
 }
 
+void dae::Renderer::RenderTexture(const Texture2D& texture, const float x, const float y,
+	const float width, const float height,
+	const SDL_FRect* srcRect, SDL_FlipMode flip) const
+{
+	SDL_FRect dst{};
+	dst.x = x;
+	dst.y = y;
+	dst.w = width;
+	dst.h = height;
+
+	SDL_RenderTextureRotated(
+		GetSDLRenderer(),
+		texture.GetSDLTexture(),
+		srcRect,        // Source rect (sprite sheet'ten hangi kısım)
+		&dst,           // Destination rect (ekranda nereye)
+		0.0,            // Rotation angle (0 = no rotation)
+		nullptr,        // Center point (nullptr = center)
+		flip            // SDL_FLIP_NONE, SDL_FLIP_HORIZONTAL, 
+	);
+}
+
 SDL_Renderer* dae::Renderer::GetSDLRenderer() const { return m_renderer; }

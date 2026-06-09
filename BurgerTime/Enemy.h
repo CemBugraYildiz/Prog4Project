@@ -7,73 +7,62 @@
 namespace BurgerTime
 {
     class Enemy;
+    class Player;  // forward declare
 
-    // STATE INTERFACE
     class EnemyState
     {
     public:
         virtual ~EnemyState() = default;
-
         virtual void OnEnter(Enemy*) {}
         virtual void OnExit(Enemy*) {}
-        virtual void Update(Enemy*) {}
-
-        virtual void OnPepperHit(Enemy*) {}
-        virtual void OnBurgerCrush(Enemy*) {}
+        virtual std::unique_ptr<EnemyState> Update(Enemy*) { return nullptr; }
+        virtual std::unique_ptr<EnemyState> OnPepperHit(Enemy*) { return nullptr; }
+        virtual std::unique_ptr<EnemyState> OnBurgerCrush(Enemy*) { return nullptr; }
     };
 
-    // NORMAL STATE
     class NormalState final : public EnemyState
     {
     public:
         void OnEnter(Enemy* enemy) override;
-        void Update(Enemy* enemy) override;
-        void OnPepperHit(Enemy* enemy) override;
-        void OnBurgerCrush(Enemy* enemy) override;
-
+        std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
+        std::unique_ptr<EnemyState> OnPepperHit(Enemy* enemy) override;
+        std::unique_ptr<EnemyState> OnBurgerCrush(Enemy* enemy) override;
     private:
-        float m_Speed{ 2.0f };
+        float m_Speed{ 60.0f };
     };
 
-    // STUNNED STATE
     class StunnedState final : public EnemyState
     {
     public:
         void OnEnter(Enemy* enemy) override;
         void OnExit(Enemy* enemy) override;
-        void Update(Enemy* enemy) override;
-        void OnPepperHit(Enemy* enemy) override;
-        void OnBurgerCrush(Enemy* enemy) override;
-
+        std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
+        std::unique_ptr<EnemyState> OnPepperHit(Enemy* enemy) override;
+        std::unique_ptr<EnemyState> OnBurgerCrush(Enemy* enemy) override;
     private:
-        int m_StunDuration{ 180 };
-        int m_StunTimer{ 0 };
+        float m_StunDuration{ 3.0f };
+        float m_StunTimer{ 0.0f };
     };
 
-    // CRUSHED STATE
     class CrushedState final : public EnemyState
     {
     public:
         void OnEnter(Enemy* enemy) override;
-        void Update(Enemy* enemy) override;
-
+        std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
     private:
-        float m_FallSpeed{ 5.0f };
+        float m_FallSpeed{ 150.0f };
     };
 
-    // DEAD STATE
-    class DeadState final : public EnemyState
+    class EnemyDeadState final : public EnemyState
     {
     public:
         void OnEnter(Enemy* enemy) override;
-        void Update(Enemy* enemy) override;
-
+        std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
     private:
-        int m_DeathTimer{ 0 };
-        int m_DeathDuration{ 60 };
+        float m_DeathTimer{ 0.0f };
+        float m_DeathDuration{ 1.0f };
     };
 
-    // ENEMY COMPONENT
     class Enemy final : public dae::Component
     {
     public:
@@ -82,25 +71,27 @@ namespace BurgerTime
 
         void Update() override;
         void Render() const override;
-
         void OnAttach() override;
         void OnDetach() override;
 
-        void ChangeState(std::unique_ptr<EnemyState> newState);
+        void OnPepperHit();
+        void OnBurgerCrush();
 
         void Move(float dx, float dy);
         void SetSprite(const std::string& spriteName);
         void AwardPoints(int points);
         void DestroyEnemy();
 
+        void SetPlayerTarget(Player* player) { m_pPlayer = player; }
+
         glm::vec2 GetPosition() const;
         glm::vec2 GetPlayerPosition() const;
         bool IsOnGround() const;
 
-        void OnPepperHit();
-        void OnBurgerCrush();
-
     private:
         std::unique_ptr<EnemyState> m_CurrentState;
+        Player* m_pPlayer{ nullptr };
+
+        void TransitionTo(std::unique_ptr<EnemyState> newState);
     };
 }

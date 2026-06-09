@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include "BenchmarkPi.h"
+#include "EngineTime.h"
 
 #if WIN32
 // Avoid pollution from windows.h (min/max macros etc.)
@@ -76,7 +77,7 @@ void PrintSDLVersion()
 	LogSDLVersion("Linked with SDL_ttf ", SDL_VERSIONNUM_MAJOR(version), SDL_VERSIONNUM_MINOR(version),	SDL_VERSIONNUM_MICRO(version));
 }
 
-dae::Minigin::Minigin(const std::filesystem::path& dataPath)
+dae::Minigin::Minigin(const std::filesystem::path& dataPath, int windowWidth, int windowHeight)
 {
 	PrintSDLVersion();
 	
@@ -87,9 +88,9 @@ dae::Minigin::Minigin(const std::filesystem::path& dataPath)
 	}
 
 	g_window = SDL_CreateWindow(
-		"Programming 4 assignment",
-		1024,
-		576,
+		"BurgerTime",
+		windowWidth,
+		windowHeight,
 		SDL_WINDOW_OPENGL
 	);
 	if (g_window == nullptr) 
@@ -132,9 +133,9 @@ dae::Minigin::~Minigin()
 void dae::Minigin::Run(const std::function<void()>& load)
 {
 	auto soundSystem = std::make_unique<SDLSoundSystem>();
-	soundSystem->RegisterSound(dae::SOUND_HIT, "Data/Sounds/Bonus.wav");
-	soundSystem->RegisterSound(dae::SOUND_COIN, "Data/Sounds/Item_Appears.wav");
-	soundSystem->RegisterSound(dae::MUSIC_GAMEPLAY, "Data/Sounds/Game_Music.wav");
+	soundSystem->RegisterSound(dae::SOUND_HIT, "Data/BurgerTime/Sounds/Bonus.wav");
+	soundSystem->RegisterSound(dae::SOUND_COIN, "Data/BurgerTime/Sounds/Item_Appears.wav");
+	soundSystem->RegisterSound(dae::MUSIC_GAMEPLAY, "Data/BurgerTime/Sounds/Game_Music.wav");
 	ServiceLocator::RegisterSoundSystem(std::move(soundSystem));
 
 	load();
@@ -161,15 +162,16 @@ void dae::Minigin::Run(const std::function<void()>& load)
 
 void dae::Minigin::RunOneFrame()
 {
-
-	// Update the last-frame time (useful for components that may need delta later)
 	const auto now = std::chrono::steady_clock::now();
-	// store last-frame time for future use
+	if (m_lastFrameTime.time_since_epoch().count() > 0)
+	{
+		float dt = std::chrono::duration<float>(now - m_lastFrameTime).count();
+		dt = std::min(dt, 0.05f);
+		EngineTime::SetDeltaTime(dt);
+	}
 	m_lastFrameTime = now;
 
-	// Process input
 	m_quit = !InputManager::GetInstance().ProcessInput();
-	// Update scene (GameObject::Update now updates components)
 
 #ifdef USE_STEAMWORKS
 	SteamAPI_RunCallbacks();

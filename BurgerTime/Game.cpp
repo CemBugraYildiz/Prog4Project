@@ -5,32 +5,68 @@
 #include <vld.h>
 #endif
 
+//#include "Minigin.h"
+//#include "SceneManager.h"
+//#include "ResourceManager.h"
+//#include "Scene.h"
+//#include "FPSComponent.h"
+//#include "OrbitComponent.h"
+//#include "GameObject.h"
+//#include "InputManager.h"
+//#include "MoveCommand.h"
+//#include "RenderComponent.h"
+//#include "TextComponent.h"
+//#include "HealthComponent.h"
+//#include "ScoreComponent.h"
+//#include "LivesDisplayComponent.h"
+//#include "ScoreDisplayComponent.h"
+//#include "DamageCommand.h"
+//#include "AddScoreCommand.h"
+//#include "WinnerAchievementComponent.h"
+//#include "ServiceLocator.h"
+//#include "SoundIds.h"
+//#include "PlaySoundCommand.h"
+//
+//#include "Enemy.h"
+//#include "Player.h"           
+//#include "PlayerState.h"      
+//#include "MovementStrategy.h" 
 #include "Minigin.h"
 #include "SceneManager.h"
 #include "ResourceManager.h"
 #include "Scene.h"
-#include "FPSComponent.h"
-#include "OrbitComponent.h"
 #include "GameObject.h"
 #include "InputManager.h"
-#include "MoveCommand.h"
-#include "RenderComponent.h"
+#include "LevelManager.h"
+#include "GameConfig.h"
+
+// Minigin Components
 #include "TextComponent.h"
+#include "RenderComponent.h"
 #include "HealthComponent.h"
 #include "ScoreComponent.h"
 #include "LivesDisplayComponent.h"
 #include "ScoreDisplayComponent.h"
+#include "FPSComponent.h"
+
+// Minigin Commands
+#include "MoveCommand.h"
 #include "DamageCommand.h"
 #include "AddScoreCommand.h"
-#include "WinnerAchievementComponent.h"
+#include "PlaySoundCommand.h"
+
+// Services
 #include "ServiceLocator.h"
 #include "SoundIds.h"
-#include "PlaySoundCommand.h"
+
+// BurgerTime
 #include "Enemy.h"
+#include "Player.h"
+#include "AnimationComponent.h"
+#include "UsePepperCommand.h"
 
 #include <filesystem>
 #include "BenchmarkPi.h"
-#include <string>
 #include <iostream>
 namespace fs = std::filesystem;
 
@@ -38,16 +74,16 @@ static void load()
 {
 	auto& scene = dae::SceneManager::GetInstance().CreateScene();
 
-	auto go = std::make_unique<dae::GameObject>();
+	/*auto go = std::make_unique<dae::GameObject>();
 	go->AddComponent<dae::RenderComponent>("background.png");
 	scene.Add(std::move(go));
 
 	go = std::make_unique<dae::GameObject>();
 	go->AddComponent<dae::RenderComponent>("logo.png");
 	go->SetPosition(358, 180);
-	scene.Add(std::move(go));
+	scene.Add(std::move(go));*/
 
-	auto titleFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 36);
+	/*auto titleFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 36);
 	auto titleGO = std::make_unique<dae::GameObject>();
 	titleGO->SetPosition(292.f, 20.f);
 	titleGO->AddComponent<dae::TextComponent>(
@@ -55,7 +91,7 @@ static void load()
 		titleFont,
 		SDL_Color{ 255, 255, 0, 255 }
 	);
-	scene.Add(std::move(titleGO));
+	scene.Add(std::move(titleGO));*/
 
 	// --- FPS on-screen ---
 	// load a small font for the FPS counter
@@ -66,155 +102,102 @@ static void load()
 	fpsGO->AddComponent<dae::FPSComponent>(fpsFont, SDL_Color{ 255, 255, 255, 255 });
 	scene.Add(std::move(fpsGO));
 
+	// ============================================
+   // LOAD LEVEL 1
+   // ============================================
+	BurgerTime::LevelManager::GetInstance().LoadLevel(2, scene); 
+
 	//Instructions
 	auto infoFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);
 
 	auto inst1GO = std::make_unique<dae::GameObject>();
 	inst1GO->SetPosition(10.f, 80.f);
 	inst1GO->AddComponent<dae::TextComponent>(
-		"Use the D-Pad to move the ladder, X to inflict damage, A/B to gain score",
+		"WASD = Move | C = Pepper | K = Damage | Z = Score",
 		infoFont,
 		SDL_Color{ 255, 255, 255, 255 }
 	);
 	scene.Add(std::move(inst1GO));
 
-	auto inst2GO = std::make_unique<dae::GameObject>();
-	inst2GO->SetPosition(10.f, 100.f);
-	inst2GO->AddComponent<dae::TextComponent>(
-		"Use WASD to move Peter, C to inflict damage, Z/X to gain score",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
-	scene.Add(std::move(inst2GO));
-
-	auto inst3GO = std::make_unique<dae::GameObject>();
-	inst3GO->SetPosition(10.f, 120.f);
-	inst3GO->AddComponent<dae::TextComponent>(
-		"For Keyboard use V key to open/close the main music, For Controller use Y button",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
-	scene.Add(std::move(inst3GO));
-
-	// Character 1
-	auto player1 = std::make_unique<dae::GameObject>();
-	player1->AddComponent<dae::RenderComponent>("peter.png");
-	player1->SetPosition(200.f, 350.f);
-	auto* player1Ptr = player1.get();
-	player1->AddComponent<dae::HealthComponent>(0, 1, 3); // playerId=0, maxHealth=1, lives=3
-	player1->AddComponent<dae::ScoreComponent>(0);
-	scene.Add(std::move(player1));
-
-	// Character 2
-	auto player2 = std::make_unique<dae::GameObject>();
-	player2->AddComponent<dae::RenderComponent>("ladder.png");
-	player2->SetPosition(500.f, 350.f);
-	auto* player2Ptr = player2.get();
-	player2->AddComponent<dae::HealthComponent>(1, 1, 3); // playerId=1
-	player2->AddComponent<dae::ScoreComponent>(1);
-	scene.Add(std::move(player2));
-
-	// -------------------------
-	// UI - Player 1 Lives
-	// -------------------------
+	
+	
+	auto* player1GO = BurgerTime::LevelManager::GetInstance().GetPlayer1Object();
+	// ============================================
+	// UI
+	// ============================================
 	auto p1LivesGO = std::make_unique<dae::GameObject>();
 	p1LivesGO->SetPosition(10.f, 150.f);
-	p1LivesGO->AddComponent<dae::TextComponent>(
-		"",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
+	p1LivesGO->AddComponent<dae::TextComponent>("", infoFont, SDL_Color{ 255, 255, 255, 255 });
 	p1LivesGO->AddComponent<dae::LivesDisplayComponent>(0, 3);
 	scene.Add(std::move(p1LivesGO));
 
-	// UI - Player 1 Score
 	auto p1ScoreGO = std::make_unique<dae::GameObject>();
 	p1ScoreGO->SetPosition(10.f, 175.f);
-	p1ScoreGO->AddComponent<dae::TextComponent>(
-		"",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
+	p1ScoreGO->AddComponent<dae::TextComponent>("", infoFont, SDL_Color{ 255, 255, 255, 255 });
 	p1ScoreGO->AddComponent<dae::ScoreDisplayComponent>(0, 0);
 	scene.Add(std::move(p1ScoreGO));
 
-	// UI - Player 2 Lives
-	auto p2LivesGO = std::make_unique<dae::GameObject>();
-	p2LivesGO->SetPosition(10.f, 200.f);
-	p2LivesGO->AddComponent<dae::TextComponent>(
-		"",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
-	p2LivesGO->AddComponent<dae::LivesDisplayComponent>(1, 3);
-	scene.Add(std::move(p2LivesGO));
-
-	// UI - Player 2 Score
-	auto p2ScoreGO = std::make_unique<dae::GameObject>();
-	p2ScoreGO->SetPosition(10.f, 225.f);
-	p2ScoreGO->AddComponent<dae::TextComponent>(
-		"",
-		infoFont,
-		SDL_Color{ 255, 255, 255, 255 }
-	);
-	p2ScoreGO->AddComponent<dae::ScoreDisplayComponent>(1, 0);
-	scene.Add(std::move(p2ScoreGO));
-
-	auto achievementGO = std::make_unique<dae::GameObject>();
-	achievementGO->AddComponent<dae::WinnerAchievementComponent>();
-	scene.Add(std::move(achievementGO));
-
-	// -------------------------
-	// Input
-	// -------------------------
+	// ============================================
+	// INPUT BINDINGS
+	// ============================================
 	auto& input = dae::InputManager::GetInstance();
 	input.ClearBindings();
 
-	constexpr float speed1 = 2.f;
-	constexpr float speed2 = 4.f; // double speed
+	constexpr float speed = 100.0f;
 
-	// WASD -> player 1
-	input.BindKeyboardCommand(SDL_SCANCODE_W, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, 0.f, -speed1));
-	input.BindKeyboardCommand(SDL_SCANCODE_S, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, 0.f, speed1));
-	input.BindKeyboardCommand(SDL_SCANCODE_A, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, -speed1, 0.f));
-	input.BindKeyboardCommand(SDL_SCANCODE_D, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player1Ptr, speed1, 0.f));
-	// Player 1 - test death / score
-	auto cCmd = std::make_unique<dae::MultiCommand>();
-	cCmd->AddCommand(std::make_unique<dae::DamageCommand>(player2Ptr, 1));
-	cCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_HIT, 1.0f));
-	input.BindKeyboardCommand(SDL_SCANCODE_C, dae::InputState::Down, std::move(cCmd));
+	// WASD - ComponentMoveCommand<Player> (Player::Move çaðrýlýr)
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_W,
+		dae::InputState::Pressed,
+		std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(player1GO, 0.f, -speed)
+	);
 
-	input.BindKeyboardCommand(SDL_SCANCODE_Z, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player1Ptr, 100));
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_S,
+		dae::InputState::Pressed,
+		std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(player1GO, 0.f, speed)
+	);
 
-	auto xCmd = std::make_unique<dae::MultiCommand>();
-	xCmd->AddCommand(std::make_unique<dae::AddScoreCommand>(player1Ptr, 200));
-	xCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_COIN, 1.0f));
-	input.BindKeyboardCommand(SDL_SCANCODE_X, dae::InputState::Down, std::move(xCmd));
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_A,
+		dae::InputState::Pressed,
+		std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(player1GO, -speed, 0.f)
+	);
+
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_D,
+		dae::InputState::Pressed,
+		std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(player1GO, speed, 0.f)
+	);
+
+	// C - Pepper
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_C,
+		dae::InputState::Down,
+		std::make_unique<BurgerTime::UsePepperCommand>(player1GO)
+	);
+
+	// K - Damage
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_K,
+		dae::InputState::Down,
+		std::make_unique<dae::DamageCommand>(player1GO, 1)
+	);
+
+	// Z - Score
+	input.BindKeyboardCommand(
+		SDL_SCANCODE_Z,
+		dae::InputState::Down,
+		std::make_unique<dae::AddScoreCommand>(player1GO, 100)
+	);
 
 
-	input.BindKeyboardCommand(SDL_SCANCODE_V, dae::InputState::Down,
-		std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
 
-	// Controller 0 DPad -> player 2
-	input.BindControllerCommand(0, dae::ControllerButton::DPadUp, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, -speed2));
-	input.BindControllerCommand(0, dae::ControllerButton::DPadDown, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, 0.f, speed2));
-	input.BindControllerCommand(0, dae::ControllerButton::DPadLeft, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, -speed2, 0.f));
-	input.BindControllerCommand(0, dae::ControllerButton::DPadRight, dae::InputState::Pressed, std::make_unique<dae::MoveCommand>(player2Ptr, speed2, 0.f));
-	// Player 2 - test death / score
-	auto ctrlXCmd = std::make_unique<dae::MultiCommand>();
-	ctrlXCmd->AddCommand(std::make_unique<dae::DamageCommand>(player1Ptr, 1));
-	ctrlXCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_HIT, 1.0f));
-	input.BindControllerCommand(0, dae::ControllerButton::X, dae::InputState::Down, std::move(ctrlXCmd));
-
-	input.BindControllerCommand(0, dae::ControllerButton::A, dae::InputState::Down, std::make_unique<dae::AddScoreCommand>(player2Ptr, 100));
-
-	auto ctrlBCmd = std::make_unique<dae::MultiCommand>();
-	ctrlBCmd->AddCommand(std::make_unique<dae::AddScoreCommand>(player2Ptr, 200));
-	ctrlBCmd->AddCommand(std::make_unique<dae::PlaySoundCommand>(dae::SOUND_COIN, 1.0f));
-	input.BindControllerCommand(0, dae::ControllerButton::B, dae::InputState::Down, std::move(ctrlBCmd));
-
-	input.BindControllerCommand(0, dae::ControllerButton::Y,
-		dae::InputState::Down, std::make_unique<dae::ToggleMusicCommand>(dae::MUSIC_GAMEPLAY, 0.5f, true));
+	std::cout << "=== GAME READY ===\n";
+	std::cout << "WASD - Move (Component-based)\n";
+	std::cout << "C - Use Pepper\n";
+	std::cout << "K - Take Damage\n";
+	std::cout << "Z - Add Score\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -223,26 +206,27 @@ int main(int argc, char* argv[]) {
 	std::cerr.setf(std::ios::unitbuf);
 
 	std::cerr << "Program started\n";
-
-	bool benchmarkMode = false; //for benchmarks make it true. You can also pass --benchmark as a command line argument to enable benchmark mode without changing the code.
-	for (int i = 1; i < argc; ++i)
+	try
 	{
-		if (std::string(argv[i]) == "--benchmark")
-		{
-			benchmarkMode = true;
-			break;
-		}
-	}
+	//bool benchmarkMode = false; //for benchmarks make it true. You can also pass --benchmark as a command line argument to enable benchmark mode without changing the code.
+	//for (int i = 1; i < argc; ++i)
+	//{
+	//	if (std::string(argv[i]) == "--benchmark")
+	//	{
+	//		benchmarkMode = true;
+	//		break;
+	//	}
+	//}
 
-	if (benchmarkMode)
-	{
-		std::cerr << "Benchmark mode entered\n";
-		RunPiBenchmarks();
-		std::cerr << "Benchmark finished\n";
-		return 0;
-	}
+	//if (benchmarkMode)
+	//{
+	//	std::cerr << "Benchmark mode entered\n";
+	//	RunPiBenchmarks();
+	//	std::cerr << "Benchmark finished\n";
+	//	return 0;
+	//}
 
-	std::cerr << "Normal game mode start\n";
+	//std::cerr << "Normal game mode start\n";
 
 #if __EMSCRIPTEN__
 	fs::path data_location = "";
@@ -251,7 +235,23 @@ int main(int argc, char* argv[]) {
 	if (!fs::exists(data_location))
 		data_location = "../Data/";
 #endif
-	dae::Minigin engine(data_location);
+	dae::Minigin engine(data_location, BurgerTime::Config::WINDOW_WIDTH, BurgerTime::Config::WINDOW_HEIGHT);
 	engine.Run(load);
+}
+	catch (const std::runtime_error& e)
+	{
+		std::cerr << " RUNTIME ERROR: " << e.what() << "\n";
+		return -1;
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << " EXCEPTION: " << e.what() << "\n";
+		return -1;
+	}
+	catch (...)
+	{
+		std::cerr << " UNKNOWN EXCEPTION\n";
+		return -1;
+	}
 	return 0;
 }

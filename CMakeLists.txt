@@ -56,12 +56,20 @@ add_library(Minigin STATIC
   Minigin/SDLSoundSystem.h
   Minigin/SDLSoundSystem.cpp
   Minigin/SoundIds.h
-  Minigin/PlaySoundCommand.h
-)
+  Minigin/PlaySoundCommand.h 
+   "Minigin/EngineTime.h")
 
 target_compile_features(Minigin PUBLIC cxx_std_20)
 
 include(FetchContent)
+
+#rapidjson
+FetchContent_Declare(
+  rapidjson
+  GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(rapidjson)
 
 # GLM
 find_package(glm CONFIG QUIET)
@@ -177,7 +185,7 @@ add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
-)
+ )
 
 target_include_directories(imgui PUBLIC
   ${imgui_SOURCE_DIR}
@@ -195,6 +203,7 @@ target_include_directories(Minigin PUBLIC
   ${sdl3_mixer_SOURCE_DIR}/include
   ${imgui_SOURCE_DIR}
   ${VLD_INCLUDE_DIR}
+  ${rapidjson_SOURCE_DIR}/include
 )
 
 target_link_libraries(Minigin PUBLIC 
@@ -225,10 +234,9 @@ add_executable(BurgerTime
   "BurgerTime/Game.cpp"
   "BurgerTime/Enemy.h" 
   "BurgerTime/Enemy.cpp"
-)
+ "BurgerTime/PlayerState.h"  "BurgerTime/Player.h" "BurgerTime/Player.cpp" "BurgerTime/PlayerState.cpp"  "BurgerTime/AnimationComponent.h" "BurgerTime/AnimationComponent.cpp" "BurgerTime/UsePepperCommand.h" "BurgerTime/LevelData.h" "BurgerTime/LevelLoader.h" "BurgerTime/LevelLoader.cpp" "BurgerTime/LevelManager.h" "BurgerTime/LevelManager.cpp" "BurgerTime/BurgerPiece.h" "BurgerTime/BurgerPiece.cpp" "BurgerTime/GameConfig.h"  )
 
 target_link_libraries(BurgerTime PRIVATE Minigin)
-
 target_include_directories(BurgerTime PRIVATE
   ${CMAKE_SOURCE_DIR}/Minigin
   ${CMAKE_SOURCE_DIR}/BurgerTime
@@ -295,9 +303,13 @@ elseif(WIN32)
   endif()
 
   add_custom_command(TARGET BurgerTime POST_BUILD
+     COMMAND "${CMAKE_COMMAND}" -E echo "Copying Data folder..."
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "$<TARGET_FILE_DIR:BurgerTime>/Data"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory 
-    "${CMAKE_CURRENT_SOURCE_DIR}/Data" 
-    "$<TARGET_FILE_DIR:BurgerTime>/Data"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Data" 
+        "$<TARGET_FILE_DIR:BurgerTime>/Data"
+    COMMENT "Force updating Data folder (including JSON levels)"
+    VERBATIM
   )
 
 elseif(APPLE)

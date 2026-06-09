@@ -15,6 +15,9 @@ namespace dae
 
 		void Update();
 		void Render() const;
+		void Clear() noexcept;
+
+		const std::vector<std::unique_ptr<GameObject>>& GetObjects() const noexcept { return m_objects; }
 
 		~Scene() = default;
 		Scene(const Scene& other) = delete;

@@ -5,7 +5,10 @@ namespace dae
 	enum class EventType
 	{
 		PlayerDied,
-		ScoreChanged
+		ScoreChanged,
+		PepperUsed,      
+		LevelCompleted,  
+		EnemyKilled
 	};
 
 	struct Event

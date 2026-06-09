@@ -2,20 +2,22 @@
 #include "GameObject.h"
 #include "RenderComponent.h"
 #include "SceneManager.h"
+#include "ScoreComponent.h"
+#include "Player.h"
+#include "EngineTime.h"
+#include "GameConfig.h"
 #include <iostream>
 
 namespace BurgerTime
 {
-    // NORMAL STATE
     void NormalState::OnEnter(Enemy* enemy)
     {
         std::cout << "Enemy: Normal state\n";
         enemy->SetSprite("enemy_normal.png");
     }
 
-    void NormalState::Update(Enemy* enemy)
+    std::unique_ptr<EnemyState> NormalState::Update(Enemy* enemy)
     {
-        // Simple AI - Move towards player
         auto playerPos = enemy->GetPlayerPosition();
         auto enemyPos = enemy->GetPosition();
 
@@ -25,25 +27,26 @@ namespace BurgerTime
         if (distance > 1.0f)
         {
             direction = glm::normalize(direction);
-            enemy->Move(direction.x * m_Speed, direction.y * m_Speed);
+            float dt = dae::EngineTime::GetDeltaTime();
+            enemy->Move(direction.x * m_Speed * dt, direction.y * m_Speed * dt);
         }
+        return nullptr;
     }
 
-    void NormalState::OnPepperHit(Enemy* enemy)
+    std::unique_ptr<EnemyState> NormalState::OnPepperHit(Enemy*)
     {
-        enemy->ChangeState(std::make_unique<StunnedState>());
+        return std::make_unique<StunnedState>();
     }
 
-    void NormalState::OnBurgerCrush(Enemy* enemy)
+    std::unique_ptr<EnemyState> NormalState::OnBurgerCrush(Enemy*)
     {
-        enemy->ChangeState(std::make_unique<CrushedState>());
+        return std::make_unique<CrushedState>();
     }
 
-    // STUNNED STATE
     void StunnedState::OnEnter(Enemy* enemy)
     {
         std::cout << "Enemy: STUNNED!\n";
-        m_StunTimer = 0;
+        m_StunTimer = 0.0f;
         enemy->SetSprite("enemy_stunned.png");
     }
 
@@ -52,32 +55,26 @@ namespace BurgerTime
         std::cout << "Enemy: Recovered from stun\n";
     }
 
-    void StunnedState::Update(Enemy* enemy)
+    std::unique_ptr<EnemyState> StunnedState::Update(Enemy*)
     {
-        m_StunTimer++;
-
-        // Visual feedback - could add blinking here
-        // TODO: Animation
-
+        m_StunTimer += dae::EngineTime::GetDeltaTime();
         if (m_StunTimer >= m_StunDuration)
-        {
-            enemy->ChangeState(std::make_unique<NormalState>());
-        }
+            return std::make_unique<NormalState>();
+        return nullptr;
     }
 
-    void StunnedState::OnPepperHit(Enemy*)
+    std::unique_ptr<EnemyState> StunnedState::OnPepperHit(Enemy*)
     {
-        // Reset stun timer
-        m_StunTimer = 0;
+        m_StunTimer = 0.0f;
         std::cout << "Stun duration reset!\n";
+        return nullptr;
     }
 
-    void StunnedState::OnBurgerCrush(Enemy* enemy)
+    std::unique_ptr<EnemyState> StunnedState::OnBurgerCrush(Enemy*)
     {
-        enemy->ChangeState(std::make_unique<CrushedState>());
+        return std::make_unique<CrushedState>();
     }
 
-    // CRUSHED STATE
     void CrushedState::OnEnter(Enemy* enemy)
     {
         std::cout << "Enemy: CRUSHED by burger!\n";
@@ -85,48 +82,36 @@ namespace BurgerTime
         enemy->AwardPoints(500);
     }
 
-    void CrushedState::Update(Enemy* enemy)
+    std::unique_ptr<EnemyState> CrushedState::Update(Enemy* enemy)
     {
-        // Fall down with burger
-        enemy->Move(0.0f, m_FallSpeed);
-
-        // Check if hit ground
+        enemy->Move(0.0f, m_FallSpeed * dae::EngineTime::GetDeltaTime());
         if (enemy->IsOnGround())
-        {
-            enemy->ChangeState(std::make_unique<DeadState>());
-        }
+            return std::make_unique<EnemyDeadState>();
+        return nullptr;
     }
 
-    // DEAD STATE
-    void DeadState::OnEnter(Enemy* enemy)
+    void EnemyDeadState::OnEnter(Enemy* enemy)
     {
         std::cout << "Enemy: DEAD!\n";
         enemy->SetSprite("enemy_dead.png");
     }
 
-    void DeadState::Update(Enemy* enemy)
+    std::unique_ptr<EnemyState> EnemyDeadState::Update(Enemy* enemy)
     {
-        m_DeathTimer++;
-
-        // Fade out animation
-        // TODO: Alpha blending or scale down
-
+        m_DeathTimer += dae::EngineTime::GetDeltaTime();
         if (m_DeathTimer >= m_DeathDuration)
-        {
             enemy->DestroyEnemy();
-        }
+        return nullptr;
     }
 
-    // ENEMY COMPONENT
     Enemy::Enemy(dae::GameObject* owner)
         : Component(owner)
+        , m_CurrentState(std::make_unique<NormalState>())
     {
-        m_CurrentState = std::make_unique<NormalState>();
     }
 
     void Enemy::OnAttach()
     {
-        // State enters when component is attached
         if (m_CurrentState)
         {
             m_CurrentState->OnEnter(this);
@@ -135,7 +120,6 @@ namespace BurgerTime
 
     void Enemy::OnDetach()
     {
-        // State exits when component is detached
         if (m_CurrentState)
         {
             m_CurrentState->OnExit(this);
@@ -148,18 +132,24 @@ namespace BurgerTime
 
         if (m_CurrentState)
         {
-            m_CurrentState->Update(this);
+            auto nextState = m_CurrentState->Update(this);
+
+            if (nextState)
+            {
+                TransitionTo(std::move(nextState));
+            }
         }
     }
 
     void Enemy::Render() const
     {
-        // Enemy doesn't render directly
-        // RenderComponent handles that
+
     }
 
-    void Enemy::ChangeState(std::unique_ptr<EnemyState> newState)
+    void Enemy::TransitionTo(std::unique_ptr<EnemyState> newState)
     {
+        if (!newState) return;
+
         if (m_CurrentState)
         {
             m_CurrentState->OnExit(this);
@@ -177,7 +167,11 @@ namespace BurgerTime
     {
         if (m_CurrentState)
         {
-            m_CurrentState->OnPepperHit(this);
+            auto nextState = m_CurrentState->OnPepperHit(this);
+            if (nextState)
+            {
+                TransitionTo(std::move(nextState));
+            }
         }
     }
 
@@ -185,11 +179,14 @@ namespace BurgerTime
     {
         if (m_CurrentState)
         {
-            m_CurrentState->OnBurgerCrush(this);
+            auto nextState = m_CurrentState->OnBurgerCrush(this);
+            if (nextState)
+            {
+                TransitionTo(std::move(nextState));
+            }
         }
     }
 
-    // HELPER METHODS
     void Enemy::Move(float dx, float dy)
     {
         auto currentPos = GetOwner()->GetWorldPosition();
@@ -213,26 +210,24 @@ namespace BurgerTime
 
     glm::vec2 Enemy::GetPlayerPosition() const
     {
-        // TODO: Find player in scene
-        // For now, return a test position
-        return glm::vec2(200, 300);
+        if (m_pPlayer)
+            return m_pPlayer->GetPosition();
+        return glm::vec2(320.0f, 352.0f);
     }
 
     bool Enemy::IsOnGround() const
     {
-        // TODO: Platform collision check
-        return GetPosition().y >= 450.0f;
+        return GetPosition().y >= static_cast<float>(Config::WINDOW_HEIGHT) - Config::ENEMY_HEIGHT;
     }
 
     void Enemy::AwardPoints(int points)
     {
         std::cout << "Player earned " << points << " points!\n";
-        // TODO: Add to score component
     }
 
     void Enemy::DestroyEnemy()
     {
         std::cout << "Enemy destroyed\n";
-        MarkForRemoval(); 
+        MarkForRemoval();
     }
 }

@@ -30,6 +30,11 @@ void Scene::RemoveAll()
 	}
 }
 
+void Scene::Clear() noexcept
+{
+	m_objects.clear();
+}
+
 void Scene::Update()
 {
 	for (auto& object : m_objects)

@@ -12,7 +12,9 @@ namespace dae
 		// track time between frames (native only). useful for future delta-time needs.
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 	public:
-		explicit Minigin(const std::filesystem::path& dataPath);
+		explicit Minigin(const std::filesystem::path& dataPath,
+			int windowWidth = 640,
+			int windowHeight = 754);
 		~Minigin();
 		void Run(const std::function<void()>& load);
 		void RunOneFrame();
