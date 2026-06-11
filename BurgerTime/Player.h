@@ -70,6 +70,8 @@ namespace BurgerTime
         void SetFacingDirection(Direction dir);
         AnimationComponent* GetAnimationComponent() const { return m_AnimationComp; }
 
+        void TransitionToVictory();
+
     private:
         // ============================================
         // MEMBER VARIABLES

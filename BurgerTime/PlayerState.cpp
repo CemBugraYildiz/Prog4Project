@@ -139,4 +139,9 @@ namespace BurgerTime
 
         return nullptr;
     }
+
+    void PlayerVictoryState::OnEnter(Player* player)
+    {
+        player->PlayAnimation("Victory");
+    }
 }

@@ -34,6 +34,7 @@ namespace BurgerTime
         float m_FallSpeed{ 150.0f };
         float m_TargetY{ 0.0f };
         dae::GameObject* m_SegmentObjects[4]{ nullptr };
+        int m_EnemiesCrushedThisFall{ 0 };
 
         void  CreateSegments();
         void  UpdateSegmentVisuals();

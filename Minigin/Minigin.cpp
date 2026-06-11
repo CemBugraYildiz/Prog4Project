@@ -136,6 +136,7 @@ void dae::Minigin::Run(const std::function<void()>& load)
 	soundSystem->RegisterSound(dae::SOUND_HIT, "Data/BurgerTime/Sounds/Bonus.wav");
 	soundSystem->RegisterSound(dae::SOUND_COIN, "Data/BurgerTime/Sounds/Item_Appears.wav");
 	soundSystem->RegisterSound(dae::MUSIC_GAMEPLAY, "Data/BurgerTime/Sounds/Game_Music.wav");
+	soundSystem->RegisterSound(dae::SOUND_WIN, "Data/BurgerTime/Sounds/win.wav");
 	ServiceLocator::RegisterSoundSystem(std::move(soundSystem));
 
 	load();

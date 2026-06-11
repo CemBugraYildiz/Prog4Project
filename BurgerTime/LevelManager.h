@@ -1,6 +1,7 @@
 #pragma once
 #include "LevelData.h"
 #include "Singleton.h"
+#include "IEventListener.h"
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
@@ -14,7 +15,7 @@ namespace BurgerTime
     class BurgerPiece;
     class Enemy;
 
-    class LevelManager final : public dae::Singleton<LevelManager>
+    class LevelManager final : public dae::Singleton<LevelManager>, public dae::IEventListener
     {
     public:
         void LoadLevel(int levelId, dae::Scene& scene);
@@ -60,6 +61,9 @@ namespace BurgerTime
         int GetEntitySection(float x, float y) const;
         const PlatSection* GetSection(int id) const;
 
+        void SpawnPepperCloud(float x, float y);
+        void OnEvent(const dae::Event& event) override;
+
     private:
         friend class dae::Singleton<LevelManager>;
         LevelManager() = default;
@@ -81,5 +85,10 @@ namespace BurgerTime
 
         std::vector<PlatSection> m_Sections;
         std::map<int, std::vector<NavEdge>> m_NavGraph;
+
+        dae::Scene* m_pScene{ nullptr };
+
+        void OnLevelComplete();
+        bool m_LevelComplete{ false };
     };
 }

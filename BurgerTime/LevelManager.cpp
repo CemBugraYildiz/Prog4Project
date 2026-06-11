@@ -3,13 +3,18 @@
 #include "GameConfig.h"
 #include "Scene.h"
 #include "GameObject.h"
+#include "ServiceLocator.h"
+#include "SoundIds.h"
 #include "Player.h"
+#include "PlayerState.h"
 #include "Enemy.h"
 #include "AnimationComponent.h"
 #include "HealthComponent.h"
 #include "ScoreComponent.h"
 #include "RenderComponent.h"
 #include "BurgerPiece.h"
+#include "PepperCloud.h"
+#include "EventQueue.h"
 #include <limits>
 #include <iostream>
 #include <queue>
@@ -39,7 +44,7 @@ namespace BurgerTime
     void LevelManager::LoadLevel(int levelId, dae::Scene& scene)
     {
         std::cout << "\n=== Loading Level " << levelId << " ===\n";
-
+        m_pScene = &scene;
         // Unload previous
         UnloadCurrentLevel(scene);
 
@@ -66,11 +71,16 @@ namespace BurgerTime
         BuildNavGraph();
         CreateEnemies(scene);
 
+        m_LevelComplete = false;
+        dae::EventQueue::GetInstance().AddListener(dae::EventType::LevelCompleted, this);
+
         std::cout << "Level " << levelId << " loaded\n\n";
     }
 
     void LevelManager::UnloadCurrentLevel(dae::Scene& scene)
     {
+        m_pScene = &scene;
+
         if (m_CurrentLevelId == 0) return;
         scene.Clear();
         m_CurrentLevelData.reset();
@@ -78,6 +88,8 @@ namespace BurgerTime
         m_pPlayer1 = nullptr;
         m_BurgerPieces.clear();
         m_Enemies.clear();
+
+        dae::EventQueue::GetInstance().RemoveListener(dae::EventType::LevelCompleted, this);
     }
 
     dae::GameObject* LevelManager::CreatePlayer(dae::Scene& scene, int playerId)
@@ -304,15 +316,24 @@ namespace BurgerTime
     {
         if (!m_CurrentLevelData) return;
 
-        for (const auto& pos : m_CurrentLevelData->enemySpawns)
+        const EnemyType typeByIndex[] = {
+            EnemyType::Egg,
+            EnemyType::Pickle,
+            EnemyType::Sausage
+        };
+
+        for (size_t i = 0; i < m_CurrentLevelData->enemySpawns.size(); ++i)
         {
+            const auto& pos = m_CurrentLevelData->enemySpawns[i];
             auto screenPos = GridToScreen(pos);
             screenPos.y -= Config::ENEMY_HEIGHT;
+
+            EnemyType type = typeByIndex[i < 3 ? i : 2];
 
             auto enemy = std::make_unique<dae::GameObject>();
             enemy->SetPosition(screenPos.x, screenPos.y);
 
-            auto* enemyComp = enemy->AddComponent<Enemy>();
+            auto* enemyComp = enemy->AddComponent<Enemy>(type);
             if (m_pPlayer1)
                 enemyComp->SetPlayerTarget(m_pPlayer1);
             if (enemyComp) m_Enemies.push_back(enemyComp);
@@ -576,5 +597,35 @@ namespace BurgerTime
             }
         }
         return {};
+    }
+
+    void LevelManager::SpawnPepperCloud(float x, float y)
+    {
+        if (!m_pScene) return;
+        auto cloud = std::make_unique<dae::GameObject>();
+        cloud->SetPosition(x, y);
+        cloud->AddComponent<PepperCloudComponent>();
+        m_pScene->Add(std::move(cloud));
+    }
+
+    void LevelManager::OnEvent(const dae::Event& event)
+    {
+        if (event.type == dae::EventType::LevelCompleted)
+            OnLevelComplete();
+    }
+
+    void LevelManager::OnLevelComplete()
+    {
+        if (m_LevelComplete) return;   
+        m_LevelComplete = true;
+
+        for (auto* enemy : m_Enemies)
+            if (enemy) enemy->Freeze();
+
+        if (m_pPlayer1)
+            m_pPlayer1->TransitionToVictory();
+
+        dae::ServiceLocator::GetSoundSystem().StopMusic();
+        dae::ServiceLocator::GetSoundSystem().Play(dae::SOUND_WIN, 1.0f);
     }
 }

@@ -5,9 +5,7 @@ namespace BurgerTime
 {
     class Player;  // Forward declaration
 
-    // ============================================
     // PLAYER STATE INTERFACE
-    // ============================================
     class PlayerState
     {
     public:
@@ -23,9 +21,7 @@ namespace BurgerTime
         virtual bool CanClimb() const { return false; }
     };
 
-    // ============================================
     // IDLE STATE
-    // ============================================
     class PlayerIdleState final : public PlayerState
     {
     public:
@@ -33,9 +29,7 @@ namespace BurgerTime
         std::unique_ptr<PlayerState> HandleInput(Player* player, float dx, float dy) override;
     };
 
-    // ============================================
     // WALKING STATE
-    // ============================================
     class PlayerWalkingState final : public PlayerState
     {
     public:
@@ -48,9 +42,7 @@ namespace BurgerTime
         float m_WalkTimer{ 0.0f };
     };
 
-    // ============================================
     // CLIMBING STATE
-    // ============================================
     class PlayerClimbingState final : public PlayerState
     {
     public:
@@ -62,9 +54,7 @@ namespace BurgerTime
         bool CanClimb() const override { return true; }
     };
 
-    // ============================================
     // DEAD STATE
-    // ============================================
     class PlayerDeadState final : public PlayerState
     {
     public:
@@ -77,5 +67,13 @@ namespace BurgerTime
     private:
         float m_DeathTimer{ 0.0f };
         const float m_DeathDuration{ 2.0f };
+    };
+
+    class PlayerVictoryState final : public PlayerState
+    {
+    public:
+        void OnEnter(Player* player) override;
+        bool CanMove()      const override { return false; }
+        bool CanUsePepper() const override { return false; }
     };
 }

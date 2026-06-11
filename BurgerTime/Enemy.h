@@ -10,6 +10,8 @@ namespace BurgerTime
     class Player;
     class AnimationComponent;
 
+    enum class EnemyType { Egg, Pickle, Sausage };
+
     class EnemyState
     {
     public:
@@ -34,12 +36,17 @@ namespace BurgerTime
 
         struct PathStep { float ladderX; int destSectionId; };
 
-        static constexpr float SPEED = 60.0f;
+        static constexpr float BASE_SPEED = 60.0f;
+        static constexpr float MAX_SPEED = 120.0f;
+        static constexpr float SPEED_INCREMENT = 5.0f;
+        static constexpr float SPEED_UP_INTERVAL = 15.0f;
         static constexpr float LADDER_SNAP_TOL = 3.0f;
 
         Phase m_Phase{ Phase::Spawn };
 
         float m_SpawnTimer{ 1.0f };
+        float m_Speed{ BASE_SPEED };
+        float m_SpeedTimer{ 0.0f };
         float m_ClimbDir{ 0.0f };
         float m_TargetPlatY{ -1.0f }; 
         int m_LastPlayerSection{ -1 };
@@ -82,11 +89,16 @@ namespace BurgerTime
         float m_DeathTimer{ 0.0f };
         static constexpr float DEATH_DURATION = 0.6f;
     };
+    class FrozenState final : public EnemyState
+    {
+        // All virtual methods return nullptr from base — enemy is completely stopped.
+    };
+
 
     class Enemy final : public dae::Component
     {
     public:
-        explicit Enemy(dae::GameObject* owner);
+        explicit Enemy(dae::GameObject* owner, EnemyType type = EnemyType::Egg);
         ~Enemy() override;
 
         void Update() override;
@@ -100,7 +112,6 @@ namespace BurgerTime
         void Move(float dx, float dy);
         void PlayAnimation(const std::string& name);
         void SetFacingRight(bool right);
-        void AwardPoints(int points);
         void DestroyEnemy();
 
         void SetPlayerTarget(Player* player) { m_pPlayer = player; }
@@ -108,10 +119,16 @@ namespace BurgerTime
         glm::vec2 GetPosition() const;
         glm::vec2 GetPlayerPosition() const;
 
+        void Freeze();
+
+        EnemyType GetEnemyType() const { return m_EnemyType; }  
+        int GetPointValue() const;
+
     private:
         std::unique_ptr<EnemyState> m_CurrentState;
         Player* m_pPlayer{ nullptr };
         AnimationComponent* m_AnimationComp{ nullptr };
+        EnemyType m_EnemyType{ EnemyType::Egg };
 
         void TransitionTo(std::unique_ptr<EnemyState> newState);
         void SetupAnimations();

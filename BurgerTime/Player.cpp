@@ -282,37 +282,35 @@ namespace BurgerTime
 
     void Player::UsePepper()
     {
-        if (!CanUsePepper() || m_PepperCount <= 0)
-        {
-            std::cout << "Player " << m_PlayerId << ": No pepper!\n";
-            return;
-        }
+        if (!CanUsePepper() || m_PepperCount <= 0) return;
         m_PepperCount--;
 
         dae::ServiceLocator::GetSoundSystem().Play(dae::SOUND_HIT, 1.0f);
 
         auto pos = GetPosition();
-        const float range = 64.0f;
-        float pepperLeft = (m_FacingDirection == Direction::Left)
-            ? pos.x - range : pos.x + Config::PLAYER_WIDTH;
-        float pepperRight = pepperLeft + range;
+        const float cloudW = 64.0f;
+        const float cloudH = 32.0f;
+
+        bool facingLeft = (m_FacingDirection == Direction::Left);
+
+        float pepperLeft = facingLeft ? pos.x - cloudW : pos.x + Config::PLAYER_WIDTH;
+        float pepperRight = pepperLeft + cloudW;
         float pepperTop = pos.y - 8.0f;
         float pepperBot = pos.y + Config::PLAYER_HEIGHT + 8.0f;
 
-        int stunCount = 0;
+        float cloudX = pepperLeft;
+        float cloudY = pos.y + (Config::PLAYER_HEIGHT - cloudH) * 0.5f;
+        LevelManager::GetInstance().SpawnPepperCloud(cloudX, cloudY);
+
         for (auto* enemy : LevelManager::GetInstance().GetEnemies())
         {
             if (!enemy) continue;
             auto ePos = enemy->GetOwner()->GetWorldPosition();
             if (ePos.x + Config::ENEMY_WIDTH > pepperLeft &&
-                ePos.x                        < pepperRight &&
+                ePos.x                         < pepperRight &&
                 ePos.y + Config::ENEMY_HEIGHT > pepperTop &&
-                ePos.y < pepperBot
-                )
-            {
+                ePos.y < pepperBot)
                 enemy->OnPepperHit();
-                ++stunCount;
-            }
         }
 
         dae::Event evt;
@@ -320,9 +318,6 @@ namespace BurgerTime
         evt.playerId = m_PlayerId;
         evt.value = m_PepperCount;
         dae::EventQueue::GetInstance().QueueEvent(evt);
-
-        std::cout << "Pepper used! Stunned " << stunCount
-            << " enemies. Remaining: " << m_PepperCount << "\n";
     }
 
     void Player::TakeDamage()
@@ -461,6 +456,11 @@ namespace BurgerTime
                 m_AnimationComp->SetFlipX(true);
             }
         }
+    }
+
+    void Player::TransitionToVictory()
+    {
+        TransitionTo(std::make_unique<PlayerVictoryState>());
     }
 
 }

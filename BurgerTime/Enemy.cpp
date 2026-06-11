@@ -18,6 +18,8 @@ namespace BurgerTime
         m_ClimbDir = 0.0f;
         m_TargetPlatY = -1.0f;
         m_LastPlayerSection = -1;
+        m_Speed = BASE_SPEED;      
+        m_SpeedTimer = 0.0f;       
         m_Path.clear();
         enemy->PlayAnimation("Walk");
     }
@@ -30,6 +32,11 @@ namespace BurgerTime
         float dt = dae::EngineTime::GetDeltaTime();
         bool  onPlat = lm.IsOnPlatform(ep.x, ep.y);
         bool  onLadder = lm.IsOnLadder(ep.x, ep.y);
+
+        m_SpeedTimer += dt;
+        float intervals = std::floor(m_SpeedTimer / SPEED_UP_INTERVAL);
+        m_Speed = std::min(BASE_SPEED + intervals * SPEED_INCREMENT, MAX_SPEED);
+
 
         switch (m_Phase)
         {
@@ -81,7 +88,7 @@ namespace BurgerTime
         auto& lm = LevelManager::GetInstance();
         float dx = m_Path[0].ladderX - ep.x;
         float dirX = (dx > 0.0f) ? 1.0f : -1.0f;
-        float newX = ep.x + dirX * SPEED * dt;
+        float newX = ep.x + dirX * m_Speed * dt;
 
         if (std::abs(dx) < LADDER_SNAP_TOL)
         {
@@ -96,7 +103,7 @@ namespace BurgerTime
         }
         else if (lm.IsOnPlatform(newX, ep.y) || lm.IsOnLadder(newX, ep.y))
         {
-            enemy->Move(dirX * SPEED * dt, 0.0f);
+            enemy->Move(dirX * m_Speed * dt, 0.0f);
             enemy->SetFacingRight(dirX > 0.0f);
             enemy->PlayAnimation("Walk");
         }
@@ -136,7 +143,7 @@ namespace BurgerTime
             return;
         }
 
-        enemy->Move(0.0f, m_ClimbDir * SPEED * dt);
+        enemy->Move(0.0f, m_ClimbDir * m_Speed * dt);
         enemy->PlayAnimation(m_ClimbDir > 0.0f ? "Descend" : "Climb");
     }
 
@@ -177,10 +184,10 @@ namespace BurgerTime
         const glm::vec2& ep)
     {
         auto& lm = LevelManager::GetInstance();
-        float newX = ep.x + dirX * SPEED * dt;
+        float newX = ep.x + dirX * m_Speed * dt;
         if (lm.IsOnPlatform(newX, ep.y))
         {
-            enemy->Move(dirX * SPEED * dt, 0.0f);
+            enemy->Move(dirX * m_Speed * dt, 0.0f);
             enemy->SetFacingRight(dirX > 0.0f);
         }
     }
@@ -242,7 +249,6 @@ namespace BurgerTime
     void CrushedState::OnEnter(Enemy* enemy)
     {
         enemy->PlayAnimation("Kill");
-        enemy->AwardPoints(500);
     }
 
     std::unique_ptr<EnemyState> CrushedState::Update(Enemy* enemy)
@@ -253,9 +259,10 @@ namespace BurgerTime
         return nullptr;
     }
 
-    Enemy::Enemy(dae::GameObject* owner)
+    Enemy::Enemy(dae::GameObject* owner, EnemyType type)
         : Component(owner)
         , m_CurrentState(std::make_unique<NormalState>())
+        , m_EnemyType(type)
     {
     }
 
@@ -297,37 +304,47 @@ namespace BurgerTime
     {
         if (!m_AnimationComp) return;
 
+        std::string p;
+        switch (m_EnemyType)
+        {
+        case EnemyType::Pickle:  p = "Pickle";  break;
+        case EnemyType::Sausage: p = "Sausage"; break;
+        default:                 p = "Egg";     break;
+        }
+
+        const std::string base = "BurgerTime/Enemies/";
+
         AnimationClip walk;
         walk.name = "Walk";
-        walk.texturePath = "BurgerTime/Enemies/Egg_Walk.png";
+        walk.texturePath = base + p + "_Walk.png";
         walk.frameCount = 2; walk.rows = 1; walk.columns = 2;
         walk.frameTime = 0.15f; walk.loop = true; walk.flipX = false;
         m_AnimationComp->AddAnimation(walk);
 
         AnimationClip climb;
         climb.name = "Climb";
-        climb.texturePath = "BurgerTime/Enemies/Egg_Climb.png";
+        climb.texturePath = base + p + "_Climb.png";
         climb.frameCount = 2; climb.rows = 1; climb.columns = 2;
         climb.frameTime = 0.15f; climb.loop = true; climb.flipX = false;
         m_AnimationComp->AddAnimation(climb);
 
         AnimationClip descend;
         descend.name = "Descend";
-        descend.texturePath = "BurgerTime/Enemies/Egg_Descend.png";
+        descend.texturePath = base + p + "_Descend.png";
         descend.frameCount = 2; descend.rows = 1; descend.columns = 2;
         descend.frameTime = 0.15f; descend.loop = true; descend.flipX = false;
         m_AnimationComp->AddAnimation(descend);
 
         AnimationClip kill;
         kill.name = "Kill";
-        kill.texturePath = "BurgerTime/Enemies/Egg_Kill.png";
+        kill.texturePath = base + p + "_Kill.png";
         kill.frameCount = 4; kill.rows = 1; kill.columns = 4;
         kill.frameTime = 0.15f; kill.loop = false; kill.flipX = false;
         m_AnimationComp->AddAnimation(kill);
 
         AnimationClip peppered;
         peppered.name = "Peppered";
-        peppered.texturePath = "BurgerTime/Enemies/Egg_Peppered.png";
+        peppered.texturePath = base + p + "_Peppered.png";
         peppered.frameCount = 2; peppered.rows = 1; peppered.columns = 2;
         peppered.frameTime = 0.2f; peppered.loop = true; peppered.flipX = false;
         m_AnimationComp->AddAnimation(peppered);
@@ -390,15 +407,20 @@ namespace BurgerTime
         return { 320.0f, 352.0f };
     }
 
-    void Enemy::AwardPoints(int points)
+    int Enemy::GetPointValue() const
     {
-        auto* player = LevelManager::GetInstance().GetPlayer1();
-        if (player) player->AddScore(points);
+        switch (m_EnemyType)
+        {
+        case EnemyType::Sausage: return 100;
+        case EnemyType::Pickle:  return 200;
+        case EnemyType::Egg:     return 300;
+        default:                 return 100;
+        }
+    }
 
-        dae::Event evt;
-        evt.type = dae::EventType::EnemyKilled;
-        evt.value = points;
-        dae::EventQueue::GetInstance().QueueEvent(evt);
+    void Enemy::Freeze()
+    {
+        TransitionTo(std::make_unique<FrozenState>());
     }
 
     void Enemy::DestroyEnemy()

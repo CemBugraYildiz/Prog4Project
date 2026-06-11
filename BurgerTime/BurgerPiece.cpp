@@ -88,9 +88,10 @@ namespace BurgerTime
                 if (bRight > ePos.x &&
                     bLeft   < ePos.x + Config::ENEMY_WIDTH &&
                     bBottom > ePos.y &&
-                    bTop < ePos.y + Config::ENEMY_HEIGHT)
+                    bTop < ePos.y)
                 {
                     enemy->OnBurgerCrush();
+                    ++m_EnemiesCrushedThisFall;
                 }
             }
 
@@ -100,6 +101,15 @@ namespace BurgerTime
             {
                 newY = m_TargetY;
                 m_IsFalling = false;
+
+                auto* player = LevelManager::GetInstance().GetPlayer1();
+                if (m_EnemiesCrushedThisFall > 0 && player)
+                {
+                    int killScore = (m_EnemiesCrushedThisFall == 1) ? 500 :
+                        (m_EnemiesCrushedThisFall == 2) ? 1000 : 2000;
+                    player->AddScore(killScore);
+                }
+                m_EnemiesCrushedThisFall = 0;
 
                 if (m_TargetIsPlate)
                 {
@@ -173,6 +183,7 @@ namespace BurgerTime
     {
         if (m_IsFalling) return;
         m_IsFalling = true;
+        m_EnemiesCrushedThisFall = 0;
 
         bool isPlate = false;
         float surfaceY = GetNextPlatformY(isPlate);
