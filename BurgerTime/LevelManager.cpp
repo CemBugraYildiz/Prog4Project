@@ -12,6 +12,8 @@
 #include "BurgerPiece.h"
 #include <limits>
 #include <iostream>
+#include <queue>
+#include <algorithm>
 
 namespace BurgerTime
 {
@@ -58,10 +60,11 @@ namespace BurgerTime
         CreateLadders(scene);
 		CreatePlates(scene);
         CreateBurgers(scene);
-        CreateEnemies(scene);
+        
 
-        // Create player
         CreatePlayer(scene, 0); // Player 1
+        BuildNavGraph();
+        CreateEnemies(scene);
 
         std::cout << "Level " << levelId << " loaded\n\n";
     }
@@ -82,29 +85,7 @@ namespace BurgerTime
         if (!m_CurrentLevelData) return nullptr;
 
         glm::vec2 spawnPos = GridToScreen(m_CurrentLevelData->peterSpawn);
-
-        if (!m_CurrentLevelData->platforms.empty())
-        {
-            float topY = std::numeric_limits<float>::max();
-            for (const auto& plat : m_CurrentLevelData->platforms)
-            {
-                auto sp = GridToScreen(plat);
-                if (sp.y >= 0.0f && sp.y < topY)
-                    topY = sp.y;
-            }
-
-            if (topY < std::numeric_limits<float>::max())
-            {
-                float rightX = std::numeric_limits<float>::lowest();
-                for (const auto& plat : m_CurrentLevelData->platforms)
-                {
-                    auto sp = GridToScreen(plat);
-                    if (std::abs(sp.y - topY) < 5.0f && sp.x > rightX)
-                        rightX = sp.x;
-                }
-                spawnPos = { rightX, topY - Config::PLAYER_HEIGHT };
-            }
-        }
+        spawnPos.y -= Config::PLAYER_HEIGHT;
 
         auto player = std::make_unique<dae::GameObject>();
         player->SetPosition(spawnPos.x, spawnPos.y);
@@ -326,8 +307,11 @@ namespace BurgerTime
         for (const auto& pos : m_CurrentLevelData->enemySpawns)
         {
             auto screenPos = GridToScreen(pos);
+            screenPos.y -= Config::ENEMY_HEIGHT;
+
             auto enemy = std::make_unique<dae::GameObject>();
             enemy->SetPosition(screenPos.x, screenPos.y);
+
             auto* enemyComp = enemy->AddComponent<Enemy>();
             if (m_pPlayer1)
                 enemyComp->SetPlayerTarget(m_pPlayer1);
@@ -443,5 +427,154 @@ namespace BurgerTime
             if (dist < bestDist) { bestDist = dist; bestX = snapX; }
         }
         return bestX;
+    }
+
+    void LevelManager::RemoveEnemy(Enemy* enemy)
+    {
+        auto it = std::find(m_Enemies.begin(), m_Enemies.end(), enemy);
+        if (it != m_Enemies.end())
+            m_Enemies.erase(it);
+    }
+
+    void LevelManager::BuildNavGraph()
+    {
+        m_Sections.clear();
+        m_NavGraph.clear();
+        if (!m_CurrentLevelData) return;
+
+        const float tileSize = static_cast<float>(Config::TILE_SIZE);
+        const float tol = Config::PLATFORM_SNAP_TOLERANCE;
+        const float enemyW = Config::ENEMY_WIDTH;
+
+        std::map<float, std::vector<float>> tilesByY;
+        for (const auto& plat : m_CurrentLevelData->platforms)
+        {
+            auto sp = GridToScreen(plat);
+            tilesByY[sp.y].push_back(sp.x);
+        }
+        for (auto& [y, xs] : tilesByY)
+            std::sort(xs.begin(), xs.end());
+
+        int nextId = 0;
+        for (const auto& [surfY, xs] : tilesByY)
+        {
+            int i = 0;
+            while (i < (int)xs.size())
+            {
+                float xMin = xs[i];
+                float xMax = xs[i] + tileSize;
+                while (i + 1 < (int)xs.size() && xs[i + 1] <= xMax + 1.0f)
+                {
+                    ++i;
+                    xMax = xs[i] + tileSize;
+                }
+                m_Sections.push_back({ nextId++, surfY, xMin - tol, xMax + tol });
+                ++i;
+            }
+        }
+
+        std::map<int, std::vector<int>> byX;
+        for (const auto& lad : m_CurrentLevelData->ladders)
+            byX[lad.x].push_back(lad.y);
+        for (auto& [x, ys] : byX)
+            std::sort(ys.begin(), ys.end());
+
+        for (const auto& [gridX, gridYs] : byX)
+        {
+            float screenX = static_cast<float>(gridX) + Config::LEVEL_OFFSET_X;
+            float snapX = screenX + (tileSize - enemyW) * 0.5f;
+
+            int i = 0;
+            while (i < (int)gridYs.size())
+            {
+                int segEnd = i;
+                while (segEnd + 1 < (int)gridYs.size() &&
+                    gridYs[segEnd + 1] == gridYs[segEnd] + (int)tileSize)
+                    ++segEnd;
+
+                float segTopY = static_cast<float>(gridYs[i]);
+                float segBotY = static_cast<float>(gridYs[segEnd]) + tileSize;
+
+                std::vector<int> sects;
+                for (const auto& sec : m_Sections)
+                {
+                    if (sec.surfaceY < segTopY - tol || sec.surfaceY > segBotY + tol) continue;
+                    if (snapX < sec.xMin || snapX > sec.xMax) continue;
+                    sects.push_back(sec.id);
+                }
+
+                for (int a = 0; a < (int)sects.size(); ++a)
+                    for (int b = a + 1; b < (int)sects.size(); ++b)
+                    {
+                        m_NavGraph[sects[a]].push_back({ snapX, sects[b] });
+                        m_NavGraph[sects[b]].push_back({ snapX, sects[a] });
+                    }
+
+                i = segEnd + 1;
+            }
+        }
+    }
+
+    int LevelManager::GetEntitySection(float x, float y) const
+    {
+        const float feetY = y + Config::PLAYER_HEIGHT;
+        const float tol = Config::PLATFORM_SNAP_TOLERANCE * 2.0f;
+        for (const auto& sec : m_Sections)
+        {
+            if (std::abs(feetY - sec.surfaceY) > tol) continue;
+            if (x >= sec.xMin && x <= sec.xMax) return sec.id;
+        }
+        return -1;
+    }
+
+    const LevelManager::PlatSection* LevelManager::GetSection(int id) const
+    {
+        if (id < 0 || id >= (int)m_Sections.size()) return nullptr;
+        return &m_Sections[id];
+    }
+
+    std::vector<LevelManager::NavEdge>
+        LevelManager::FindEnemyPath(int fromSection, int toSection) const
+    {
+        if (fromSection < 0 || toSection < 0 || fromSection == toSection) return {};
+
+        std::map<int, int>      parent;
+        std::map<int, NavEdge>  edgeUsed;
+        std::queue<int>         q;
+
+        parent[fromSection] = fromSection;
+        q.push(fromSection);
+
+        while (!q.empty())
+        {
+            int cur = q.front(); q.pop();
+
+            if (cur == toSection)
+            {
+                std::vector<NavEdge> path;
+                int node = cur;
+                while (node != fromSection)
+                {
+                    path.push_back(edgeUsed[node]);
+                    node = parent[node];
+                }
+                std::reverse(path.begin(), path.end());
+                return path;
+            }
+
+            auto it = m_NavGraph.find(cur);
+            if (it == m_NavGraph.end()) continue;
+
+            for (const auto& edge : it->second)
+            {
+                if (parent.find(edge.destSectionId) == parent.end())
+                {
+                    parent[edge.destSectionId] = cur;
+                    edgeUsed[edge.destSectionId] = edge;
+                    q.push(edge.destSectionId);
+                }
+            }
+        }
+        return {};
     }
 }

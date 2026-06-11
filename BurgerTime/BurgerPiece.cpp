@@ -5,6 +5,8 @@
 #include "LevelManager.h"
 #include "Player.h"
 #include "EngineTime.h"
+#include "EventQueue.h"
+#include "Enemy.h"
 #include <iostream>
 
 namespace BurgerTime
@@ -73,6 +75,25 @@ namespace BurgerTime
         if (m_IsFalling && !m_IsLanded)
         {
             auto currentPos = GetOwner()->GetWorldPosition();
+
+            float bLeft = currentPos.x;
+            float bRight = currentPos.x + 4.0f * Config::BURGER_SEGMENT_WIDTH;
+            float bTop = currentPos.y;
+            float bBottom = currentPos.y + Config::BURGER_PIECE_HEIGHT;
+
+            for (auto* enemy : LevelManager::GetInstance().GetEnemies())
+            {
+                if (!enemy) continue;
+                auto ePos = enemy->GetOwner()->GetWorldPosition();
+                if (bRight > ePos.x &&
+                    bLeft   < ePos.x + Config::ENEMY_WIDTH &&
+                    bBottom > ePos.y &&
+                    bTop < ePos.y + Config::ENEMY_HEIGHT)
+                {
+                    enemy->OnBurgerCrush();
+                }
+            }
+
             float newY = currentPos.y + m_FallSpeed * dae::EngineTime::GetDeltaTime();
 
             if (newY >= m_TargetY)
@@ -85,7 +106,17 @@ namespace BurgerTime
                     float finalY = CalculatePlateStackY();
                     GetOwner()->SetPosition(currentPos.x, finalY);
                     m_IsLanded = true;
-                    std::cout << "Burger stacked on plate at Y=" << finalY << "\n";
+
+                    auto* player = LevelManager::GetInstance().GetPlayer1();
+                    if (player) player->AddScore(50);
+
+                    if (LevelManager::GetInstance().IsLevelComplete())
+                    {
+                        dae::Event evt;
+                        evt.type = dae::EventType::LevelCompleted;
+                        dae::EventQueue::GetInstance().QueueEvent(evt);
+                        std::cout << "=== LEVEL COMPLETE! ===\n";
+                    }
                 }
                 else
                 {
@@ -93,7 +124,6 @@ namespace BurgerTime
                     m_SegmentWalked.fill(false);
                     m_WalkedCount = 0;
                     UpdateSegmentVisuals();
-                    std::cout << "Burger landed on platform at Y=" << newY << " (waiting)\n";
                     TriggerChainReaction(newY);
                 }
             }

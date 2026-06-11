@@ -105,7 +105,7 @@ static void load()
 	// ============================================
    // LOAD LEVEL 1
    // ============================================
-	BurgerTime::LevelManager::GetInstance().LoadLevel(2, scene); 
+	BurgerTime::LevelManager::GetInstance().LoadLevel(3, scene); 
 
 	//Instructions
 	auto infoFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);

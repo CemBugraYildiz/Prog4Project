@@ -47,8 +47,8 @@ namespace BurgerTime
         constexpr int TILE_SIZE = 64;
 
         // Enemy
-        constexpr float ENEMY_WIDTH = 64.0f;
-        constexpr float ENEMY_HEIGHT = 64.0f;
+        constexpr float ENEMY_WIDTH = 32.0f;
+        constexpr float ENEMY_HEIGHT = 32.0f;
 
         // Plate
         constexpr float PLATE_WIDTH = 75.0f;

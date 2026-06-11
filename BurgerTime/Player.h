@@ -85,6 +85,9 @@ namespace BurgerTime
         // Gameplay
         int m_PepperCount{ 5 };
         glm::vec2 m_SpawnPosition{ 0.0f, 0.0f };
+        bool  m_IsInvincible{ false };
+        float m_InvincibleTimer{ 0.0f };
+        static constexpr float INVINCIBLE_DURATION = 1.5f;
 
         // External systems
         CollisionManager* m_CollisionManager{ nullptr };
@@ -92,9 +95,7 @@ namespace BurgerTime
 
         glm::vec2 m_LastPosition{ 0.0f, 0.0f };
 
-        // ============================================
         // HELPER METHODS
-        // ============================================
         void SetupAnimations();
     };
 }

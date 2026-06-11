@@ -7,7 +7,8 @@
 namespace BurgerTime
 {
     class Enemy;
-    class Player;  // forward declare
+    class Player;
+    class AnimationComponent;
 
     class EnemyState
     {
@@ -27,8 +28,36 @@ namespace BurgerTime
         std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
         std::unique_ptr<EnemyState> OnPepperHit(Enemy* enemy) override;
         std::unique_ptr<EnemyState> OnBurgerCrush(Enemy* enemy) override;
+
     private:
-        float m_Speed{ 60.0f };
+        enum class Phase { Spawn, WalkToLadder, Climbing, Chase };
+
+        struct PathStep { float ladderX; int destSectionId; };
+
+        static constexpr float SPEED = 60.0f;
+        static constexpr float LADDER_SNAP_TOL = 3.0f;
+
+        Phase m_Phase{ Phase::Spawn };
+
+        float m_SpawnTimer{ 1.0f };
+        float m_ClimbDir{ 0.0f };
+        float m_TargetPlatY{ -1.0f }; 
+        int m_LastPlayerSection{ -1 };
+
+        std::vector<PathStep> m_Path;
+
+        void DoSpawn(Enemy* e, float dt, bool onPlatform,
+            const glm::vec2& ep, const glm::vec2& pp);
+        void DoWalkToLadder(Enemy* e, float dt, bool onPlatform,
+            const glm::vec2& ep, const glm::vec2& pp);
+        void DoClimbing(Enemy* e, float dt, bool onLadder, bool onPlatform,
+            const glm::vec2& ep);
+        void DoChase(Enemy* e, float dt, bool onPlatform,
+            const glm::vec2& ep, const glm::vec2& pp);
+
+        void RebuildPath(const glm::vec2& ep, const glm::vec2& pp);
+        void MoveHorizontal(Enemy* e, float dirX, float dt, const glm::vec2& ep);
+        void CheckPlayerCollision(Enemy* e, const glm::vec2& ep);
     };
 
     class StunnedState final : public EnemyState
@@ -50,24 +79,15 @@ namespace BurgerTime
         void OnEnter(Enemy* enemy) override;
         std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
     private:
-        float m_FallSpeed{ 150.0f };
-    };
-
-    class EnemyDeadState final : public EnemyState
-    {
-    public:
-        void OnEnter(Enemy* enemy) override;
-        std::unique_ptr<EnemyState> Update(Enemy* enemy) override;
-    private:
         float m_DeathTimer{ 0.0f };
-        float m_DeathDuration{ 1.0f };
+        static constexpr float DEATH_DURATION = 0.6f;
     };
 
     class Enemy final : public dae::Component
     {
     public:
         explicit Enemy(dae::GameObject* owner);
-        ~Enemy() override = default;
+        ~Enemy() override;
 
         void Update() override;
         void Render() const override;
@@ -78,7 +98,8 @@ namespace BurgerTime
         void OnBurgerCrush();
 
         void Move(float dx, float dy);
-        void SetSprite(const std::string& spriteName);
+        void PlayAnimation(const std::string& name);
+        void SetFacingRight(bool right);
         void AwardPoints(int points);
         void DestroyEnemy();
 
@@ -86,12 +107,13 @@ namespace BurgerTime
 
         glm::vec2 GetPosition() const;
         glm::vec2 GetPlayerPosition() const;
-        bool IsOnGround() const;
 
     private:
         std::unique_ptr<EnemyState> m_CurrentState;
         Player* m_pPlayer{ nullptr };
+        AnimationComponent* m_AnimationComp{ nullptr };
 
         void TransitionTo(std::unique_ptr<EnemyState> newState);
+        void SetupAnimations();
     };
 }

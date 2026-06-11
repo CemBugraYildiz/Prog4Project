@@ -12,6 +12,7 @@
 #include <iostream>
 #include "EngineTime.h"
 #include "GameConfig.h"
+#include "Enemy.h"
 
 
 namespace BurgerTime
@@ -126,6 +127,13 @@ namespace BurgerTime
 
         // Store current position for next frame
         m_LastPosition = currentPosition;
+
+        if (m_IsInvincible)
+        {
+            m_InvincibleTimer -= dae::EngineTime::GetDeltaTime();
+            if (m_InvincibleTimer <= 0.0f)
+                m_IsInvincible = false;
+        }
 
         // ============================================
         // STATE UPDATE (time-based state changes)
@@ -274,36 +282,64 @@ namespace BurgerTime
 
     void Player::UsePepper()
     {
-        if (!CanUsePepper()) return;
-
-        if (m_PepperCount <= 0)
+        if (!CanUsePepper() || m_PepperCount <= 0)
         {
             std::cout << "Player " << m_PlayerId << ": No pepper!\n";
             return;
         }
-
         m_PepperCount--;
-        std::cout << "Player " << m_PlayerId << " used pepper! Remaining: " << m_PepperCount << "\n";
 
         dae::ServiceLocator::GetSoundSystem().Play(dae::SOUND_HIT, 1.0f);
 
-        // TODO: Spawn pepper effect
-        // TODO: Stun enemies in range
+        auto pos = GetPosition();
+        const float range = 64.0f;
+        float pepperLeft = (m_FacingDirection == Direction::Left)
+            ? pos.x - range : pos.x + Config::PLAYER_WIDTH;
+        float pepperRight = pepperLeft + range;
+        float pepperTop = pos.y - 8.0f;
+        float pepperBot = pos.y + Config::PLAYER_HEIGHT + 8.0f;
+
+        int stunCount = 0;
+        for (auto* enemy : LevelManager::GetInstance().GetEnemies())
+        {
+            if (!enemy) continue;
+            auto ePos = enemy->GetOwner()->GetWorldPosition();
+            if (ePos.x + Config::ENEMY_WIDTH > pepperLeft &&
+                ePos.x                        < pepperRight &&
+                ePos.y + Config::ENEMY_HEIGHT > pepperTop &&
+                ePos.y < pepperBot
+                )
+            {
+                enemy->OnPepperHit();
+                ++stunCount;
+            }
+        }
+
+        dae::Event evt;
+        evt.type = dae::EventType::PepperUsed;
+        evt.playerId = m_PlayerId;
+        evt.value = m_PepperCount;
+        dae::EventQueue::GetInstance().QueueEvent(evt);
+
+        std::cout << "Pepper used! Stunned " << stunCount
+            << " enemies. Remaining: " << m_PepperCount << "\n";
     }
 
     void Player::TakeDamage()
     {
+        if (m_IsInvincible) return;
+
+        m_IsInvincible = true;
+        m_InvincibleTimer = INVINCIBLE_DURATION;
+
         std::cout << "Player " << m_PlayerId << " took damage!\n";
 
         auto* health = GetOwner()->GetComponent<dae::HealthComponent>();
         if (health)
         {
-            health->TakeDamage(1);
-
+            health->TakeDamage(1); 
             if (health->GetLives() <= 0)
-            {
                 TransitionTo(std::make_unique<PlayerDeadState>());
-            }
         }
 
         dae::ServiceLocator::GetSoundSystem().Play(dae::SOUND_HIT, 1.0f);

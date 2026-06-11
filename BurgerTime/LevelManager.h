@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+#include <map>
 
 namespace dae { class Scene; class GameObject; }
 
@@ -32,11 +33,32 @@ namespace BurgerTime
         bool IsLevelComplete() const;
         float GetNearestPlatformY(float x, float y) const;
         float GetNearestLadderX(float x, float y) const;
+        void RemoveEnemy(Enemy* enemy);
 
         static glm::vec2 GridToScreen(const glm::ivec2& gridPos);
         static glm::vec2 GridToScreen(int gridX, int gridY);
 
         const std::vector<BurgerPiece*>& GetBurgerPieces() const { return m_BurgerPieces; }
+        const std::vector<Enemy*>& GetEnemies() const { return m_Enemies; }
+
+        struct PlatSection
+        {
+            int   id;
+            float surfaceY;
+            float xMin;
+            float xMax;
+        };
+
+        struct NavEdge
+        {
+            float ladderX;
+            int   destSectionId;
+        };
+
+        void BuildNavGraph();
+        std::vector<NavEdge> FindEnemyPath(int fromSection, int toSection) const;
+        int GetEntitySection(float x, float y) const;
+        const PlatSection* GetSection(int id) const;
 
     private:
         friend class dae::Singleton<LevelManager>;
@@ -56,5 +78,8 @@ namespace BurgerTime
         void CreateEnemies(dae::Scene& scene);
         void CreatePepperPickups(dae::Scene& scene);
         dae::GameObject* CreatePlayer(dae::Scene& scene, int playerId);
+
+        std::vector<PlatSection> m_Sections;
+        std::map<int, std::vector<NavEdge>> m_NavGraph;
     };
 }
