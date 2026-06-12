@@ -6,16 +6,15 @@
 #include "Event.h"
 #include "EventQueue.h"
 #include "ScoreComponent.h"
-#include <iostream>
+#include "LevelManager.h"
+#include "GameManager.h"
+#include "GameMode.h"
 
 namespace BurgerTime
 {
-    // ============================================
     // IDLE STATE
-    // ============================================
     void PlayerIdleState::OnEnter(Player* player)
     {
-        std::cout << "Player " << player->GetPlayerId() << ": IDLE\n";
         player->PlayAnimation("Idle");
     }
 
@@ -28,12 +27,9 @@ namespace BurgerTime
         return nullptr;
     }
 
-    // ============================================
     // WALKING STATE
-    // ============================================
     void PlayerWalkingState::OnEnter(Player* player)
     {
-        std::cout << "Player " << player->GetPlayerId() << ": WALKING\n";
         player->PlayAnimation("Walk");
     }
 
@@ -43,7 +39,7 @@ namespace BurgerTime
 
     std::unique_ptr<PlayerState> PlayerWalkingState::Update(Player*, float deltaTime)
     {
-        m_WalkTimer += deltaTime;
+        (void)deltaTime;
         return nullptr;
     }
 
@@ -62,12 +58,9 @@ namespace BurgerTime
         return nullptr;
     }
 
-    // ============================================
     // CLIMBING STATE
-    // ============================================
     void PlayerClimbingState::OnEnter(Player* player)
     {
-        std::cout << "Player " << player->GetPlayerId() << ": CLIMBING\n";
         player->PlayAnimation("ClimbUp");
     }
 
@@ -75,7 +68,7 @@ namespace BurgerTime
     {
     }
 
-    std::unique_ptr<PlayerState> PlayerClimbingState::Update(Player*, float deltaTime)
+    std::unique_ptr<PlayerState> PlayerClimbingState::Update(Player*, float /*deltaTime*/)
     {
         return nullptr;
     }
@@ -107,12 +100,9 @@ namespace BurgerTime
         return nullptr;
     }
 
-    // ============================================
     // DEAD STATE
-    // ============================================
     void PlayerDeadState::OnEnter(Player* player)
     {
-        std::cout << "Player " << player->GetPlayerId() << ": DEAD!\n";
         player->PlayAnimation("Death");
         m_DeathTimer = 0.0f;
     }
@@ -133,12 +123,39 @@ namespace BurgerTime
             }
             else
             {
-                auto* score = player->GetOwner()->GetComponent<dae::ScoreComponent>();
-                dae::Event evt;
-                evt.type = dae::EventType::GameOver;
-                evt.value = score ? score->GetScore() : 0;
-                dae::EventQueue::GetInstance().QueueEvent(evt);
                 player->SetActive(false);
+
+                bool shouldFireGameOver = true;
+                int  gameOverScore = 0;
+
+                if (GameManager::GetInstance().GetGameMode() == GameMode::CoOp)
+                {
+                    auto* p1 = LevelManager::GetInstance().GetPlayer1();
+                    auto* p2 = LevelManager::GetInstance().GetPlayer2();
+
+                    bool anyoneAlive = (p1 && p1->IsAlive()) || (p2 && p2->IsAlive());
+                    if (anyoneAlive)
+                        shouldFireGameOver = false;
+
+                    if (p1)
+                    {
+                        auto* sc = p1->GetOwner()->GetComponent<dae::ScoreComponent>();
+                        gameOverScore = sc ? sc->GetScore() : 0;
+                    }
+                }
+                else
+                {
+                    auto* sc = player->GetOwner()->GetComponent<dae::ScoreComponent>();
+                    gameOverScore = sc ? sc->GetScore() : 0;
+                }
+
+                if (shouldFireGameOver)
+                {
+                    dae::Event evt;
+                    evt.type = dae::EventType::GameOver;
+                    evt.value = gameOverScore;
+                    dae::EventQueue::GetInstance().QueueEvent(evt);
+                }
             }
         }
         return nullptr;

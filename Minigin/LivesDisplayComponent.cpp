@@ -39,5 +39,5 @@ void dae::LivesDisplayComponent::RefreshText()
 	auto* text = m_owner->GetComponent<dae::TextComponent>();
 	if (!text) return;
 
-	text->SetText("# lives: " + std::to_string(m_Lives));
+	text->SetText("# lives: " + std::to_string(std::max(0, m_Lives - 1)));
 }

@@ -234,7 +234,7 @@ add_executable(BurgerTime
   "BurgerTime/Game.cpp"
   "BurgerTime/Enemy.h" 
   "BurgerTime/Enemy.cpp"
- "BurgerTime/PlayerState.h"  "BurgerTime/Player.h" "BurgerTime/Player.cpp" "BurgerTime/PlayerState.cpp"  "BurgerTime/AnimationComponent.h" "BurgerTime/AnimationComponent.cpp" "BurgerTime/UsePepperCommand.h" "BurgerTime/LevelData.h" "BurgerTime/LevelLoader.h" "BurgerTime/LevelLoader.cpp" "BurgerTime/LevelManager.h" "BurgerTime/LevelManager.cpp" "BurgerTime/BurgerPiece.h" "BurgerTime/BurgerPiece.cpp" "BurgerTime/GameConfig.h"   "BurgerTime/TimedRemovalComponent.h" "BurgerTime/PepperCloud.h" "BurgerTime/HighScoreManager.h" "BurgerTime/HighScoreManager.cpp" "BurgerTime/GameManager.h" "BurgerTime/GameManager.cpp" "BurgerTime/MainMenuComponent.h" "BurgerTime/MainMenuComponent.cpp" "BurgerTime/GameOverComponent.h" "BurgerTime/GameOverComponent.cpp" "BurgerTime/HighScoreEntryComponent.h" "BurgerTime/HighScoreEntryComponent.cpp" "BurgerTime/PepperDisplayComponent.h" "BurgerTime/PepperDisplayComponent.cpp")
+ "BurgerTime/PlayerState.h"  "BurgerTime/Player.h" "BurgerTime/Player.cpp" "BurgerTime/PlayerState.cpp"  "BurgerTime/AnimationComponent.h" "BurgerTime/AnimationComponent.cpp" "BurgerTime/UsePepperCommand.h" "BurgerTime/LevelData.h" "BurgerTime/LevelLoader.h" "BurgerTime/LevelLoader.cpp" "BurgerTime/LevelManager.h" "BurgerTime/LevelManager.cpp" "BurgerTime/BurgerPiece.h" "BurgerTime/BurgerPiece.cpp" "BurgerTime/GameConfig.h"   "BurgerTime/TimedRemovalComponent.h" "BurgerTime/PepperCloud.h" "BurgerTime/HighScoreManager.h" "BurgerTime/HighScoreManager.cpp" "BurgerTime/GameManager.h" "BurgerTime/GameManager.cpp" "BurgerTime/MainMenuComponent.h" "BurgerTime/MainMenuComponent.cpp" "BurgerTime/GameOverComponent.h" "BurgerTime/GameOverComponent.cpp" "BurgerTime/HighScoreEntryComponent.h" "BurgerTime/HighScoreEntryComponent.cpp" "BurgerTime/PepperDisplayComponent.h" "BurgerTime/PepperDisplayComponent.cpp" "BurgerTime/GameMode.h" "BurgerTime/PlayerDog.h" "BurgerTime/PlayerDog.cpp")
 
 target_link_libraries(BurgerTime PRIVATE Minigin)
 target_include_directories(BurgerTime PRIVATE
@@ -245,7 +245,9 @@ target_include_directories(BurgerTime PRIVATE
 target_compile_features(BurgerTime PUBLIC cxx_std_20)
 
 if(MSVC)
-  target_compile_options(BurgerTime PRIVATE /W4)
+  target_compile_options(BurgerTime PRIVATE /W4 /WX)
+else()
+  target_compile_options(BurgerTime PRIVATE -Wall -Wextra -Werror)
 endif()
 
 # Platform-Specific Settings

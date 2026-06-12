@@ -21,6 +21,7 @@
 #include "ScoreComponent.h"
 #include "MoveCommand.h" 
 #include "UsePepperCommand.h"
+#include "PlayerDog.h"
 
 #include <fstream>
 #include <string>
@@ -52,11 +53,13 @@ namespace BurgerTime
         BuildMainMenuScene();
     }
 
-    void GameManager::StartGame(int levelId)
+    void GameManager::StartGame(int levelId, GameMode mode)
     {
         m_CurrentLevel = levelId;
+        m_GameMode = mode;
         m_CurrentScreen = GameScreen::Gameplay;
         ClearScene();
+        LevelManager::GetInstance().SetGameMode(mode);
         LevelManager::GetInstance().LoadLevel(levelId, *m_pScene);
         BuildHUD();
         BindGameplayKeys();
@@ -69,7 +72,7 @@ namespace BurgerTime
         std::string path = "Data/BurgerTime/Levels/level" + std::to_string(next) + ".json";
         std::ifstream test(path);
         if (!test.good()) { ShowMainMenu(); return; }
-        StartGame(next);
+        StartGame(next, m_GameMode);
     }
 
     void GameManager::ShowGameOver(int score)
@@ -307,10 +310,11 @@ namespace BurgerTime
         auto& rm = dae::ResourceManager::GetInstance();
         auto  font = rm.LoadFont("Lingua.otf", 22);
 
+        //  Player 1 
         auto livesGO = std::make_unique<dae::GameObject>();
         livesGO->SetPosition(10.f, 55.f);
         livesGO->AddComponent<dae::TextComponent>("", font, SDL_Color{ 255, 255, 255, 255 });
-        livesGO->AddComponent<dae::LivesDisplayComponent>(0, 3);
+        livesGO->AddComponent<dae::LivesDisplayComponent>(0, 4);
         m_pScene->Add(std::move(livesGO));
 
         auto scoreGO = std::make_unique<dae::GameObject>();
@@ -322,8 +326,24 @@ namespace BurgerTime
         auto pepperGO = std::make_unique<dae::GameObject>();
         pepperGO->SetPosition(10.f, 105.f);
         pepperGO->AddComponent<dae::TextComponent>("Pepper: 5", font, SDL_Color{ 255, 255, 100, 255 });
-        pepperGO->AddComponent<BurgerTime::PepperDisplayComponent>(0);
+        pepperGO->AddComponent<PepperDisplayComponent>(0);
         m_pScene->Add(std::move(pepperGO));
+
+        // Player 2 HUD 
+        if (m_GameMode == GameMode::CoOp)
+        {
+            auto p2LivesGO = std::make_unique<dae::GameObject>();
+            p2LivesGO->SetPosition(450.f, 55.f);
+            p2LivesGO->AddComponent<dae::TextComponent>("", font, SDL_Color{ 100, 255, 200, 255 });
+            p2LivesGO->AddComponent<dae::LivesDisplayComponent>(1, 4);
+            m_pScene->Add(std::move(p2LivesGO));
+
+            auto p2PepperGO = std::make_unique<dae::GameObject>();
+            p2PepperGO->SetPosition(450.f, 80.f);
+            p2PepperGO->AddComponent<dae::TextComponent>("Pepper: 5", font, SDL_Color{ 100, 255, 200, 255 });
+            p2PepperGO->AddComponent<PepperDisplayComponent>(1);
+            m_pScene->Add(std::move(p2PepperGO));
+        }
     }
 
     void GameManager::BindMainMenuKeys(MainMenuComponent* menu)
@@ -358,35 +378,76 @@ namespace BurgerTime
         if (!p1GO) return;
 
         constexpr float spd = 100.f;
+        constexpr float dogSpd = 120.f;
 
+        // P1: keyboard (all modes)
         input.BindKeyboardCommand(SDL_SCANCODE_W, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, 0.f, -spd));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, 0.f, -spd));
         input.BindKeyboardCommand(SDL_SCANCODE_S, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, 0.f, spd));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, 0.f, spd));
         input.BindKeyboardCommand(SDL_SCANCODE_A, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, -spd, 0.f));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, -spd, 0.f));
         input.BindKeyboardCommand(SDL_SCANCODE_D, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, spd, 0.f));
-
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, spd, 0.f));
         input.BindKeyboardCommand(SDL_SCANCODE_C, dae::InputState::Down,
-            std::make_unique<BurgerTime::UsePepperCommand>(p1GO));
+            std::make_unique<UsePepperCommand>(p1GO));
 
-        //  Gamepad (controller 0)
+        // P1: gamepad0 - all modes
         input.BindControllerCommand(0, dae::ControllerButton::DPadUp, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, 0.f, -spd));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, 0.f, -spd));
         input.BindControllerCommand(0, dae::ControllerButton::DPadDown, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, 0.f, spd));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, 0.f, spd));
         input.BindControllerCommand(0, dae::ControllerButton::DPadLeft, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, -spd, 0.f));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, -spd, 0.f));
         input.BindControllerCommand(0, dae::ControllerButton::DPadRight, dae::InputState::Pressed,
-            std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(p1GO, spd, 0.f));
+            std::make_unique<dae::ComponentMoveCommand<Player>>(p1GO, spd, 0.f));
         input.BindControllerCommand(0, dae::ControllerButton::A, dae::InputState::Down,
-            std::make_unique<BurgerTime::UsePepperCommand>(p1GO));
+            std::make_unique<UsePepperCommand>(p1GO));
 
-        // F1  next level
+        // Co-op: P2 gamepad0+1
+        if (m_GameMode == GameMode::CoOp)
+        {
+            auto* p2GO = LevelManager::GetInstance().GetPlayer2Object();
+            if (p2GO)
+            {
+                for (uint8_t idx : { uint8_t{ 0 }, uint8_t{ 1 } })
+                {
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadUp, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<Player>>(p2GO, 0.f, -spd));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadDown, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<Player>>(p2GO, 0.f, spd));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadLeft, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<Player>>(p2GO, -spd, 0.f));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadRight, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<Player>>(p2GO, spd, 0.f));
+                    input.BindControllerCommand(idx, dae::ControllerButton::A, dae::InputState::Down,
+                        std::make_unique<UsePepperCommand>(p2GO));
+                }
+            }
+        }
+        // Versus: PlayerDog gamepad0+1
+        else if (m_GameMode == GameMode::Versus)
+        {
+            auto* dogGO = LevelManager::GetInstance().GetPlayerDogObject();
+            if (dogGO)
+            {
+                for (uint8_t idx : { uint8_t{ 0 }, uint8_t{ 1 } })
+                {
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadUp, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<PlayerDog>>(dogGO, 0.f, -dogSpd));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadDown, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<PlayerDog>>(dogGO, 0.f, dogSpd));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadLeft, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<PlayerDog>>(dogGO, -dogSpd, 0.f));
+                    input.BindControllerCommand(idx, dae::ControllerButton::DPadRight, dae::InputState::Pressed,
+                        std::make_unique<dae::ComponentMoveCommand<PlayerDog>>(dogGO, dogSpd, 0.f));
+                }
+            }
+        }
+
+        // F1 / F2
         input.BindKeyboardCommand(SDL_SCANCODE_F1, dae::InputState::Down,
             std::make_unique<dae::FuncCommand>([] { GameManager::GetInstance().LoadNextLevel(); }));
-        // F2  toggle sound
         input.BindKeyboardCommand(SDL_SCANCODE_F2, dae::InputState::Down,
             std::make_unique<dae::FuncCommand>([] { GameManager::GetInstance().ToggleSound(); }));
     }

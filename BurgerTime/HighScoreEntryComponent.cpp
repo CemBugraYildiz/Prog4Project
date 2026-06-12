@@ -8,7 +8,7 @@ namespace BurgerTime
     static std::string SlotAt(int idx)
     {
         idx = ((idx % 27) + 27) % 27;
-        if (idx < 26) return std::string(1, 'A' + idx);
+        if (idx < 26) return std::string(1, static_cast<char>('A' + idx));
         return "END";
     }
 
@@ -38,7 +38,7 @@ namespace BurgerTime
         }
         if ((int)m_Name.size() < MAX_NAME)
         {
-            m_Name += ('A' + m_WheelIdx);
+            m_Name += static_cast<char>('A' + m_WheelIdx);
             if ((int)m_Name.size() == MAX_NAME)
             {
                 HighScoreManager::GetInstance().Add(m_Name, m_Score);

@@ -2,12 +2,14 @@
 #include "LevelData.h"
 #include "Singleton.h"
 #include "IEventListener.h"
+#include "GameMode.h"
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
 #include <map>
 
 namespace dae { class Scene; class GameObject; }
+namespace BurgerTime { class PlayerDog; }
 
 namespace BurgerTime
 {
@@ -29,6 +31,7 @@ namespace BurgerTime
         bool IsPointOnPlatform(float x, float feetY) const;
 
         Player* GetPlayer1() const { return m_pPlayer1; }
+        Player* GetPlayer2() const { return m_pPlayer2; }
         dae::GameObject* GetPlayer1Object() const;
 
         bool IsLevelComplete() const;
@@ -64,6 +67,15 @@ namespace BurgerTime
         void SpawnPepperCloud(float x, float y);
         void OnEvent(const dae::Event& event) override;
 
+        dae::GameObject* GetPlayer2Object()  const;
+        dae::GameObject* GetPlayerDogObject() const;
+        int GetNearestSection(float x, float y) const;
+        int GetNearestSectionExcluding(float x, float y, int excludeId) const;
+        void SetGameMode(GameMode mode) { m_GameMode = mode; }
+        GameMode GetGameMode() const { return m_GameMode; }
+
+        void ClearPlayerDog() { m_pPlayerDog = nullptr; }
+
     private:
         friend class dae::Singleton<LevelManager>;
         LevelManager() = default;
@@ -80,7 +92,6 @@ namespace BurgerTime
         void CreatePlates(dae::Scene& scene);
         void CreateBurgers(dae::Scene& scene);
         void CreateEnemies(dae::Scene& scene);
-        void CreatePepperPickups(dae::Scene& scene);
         dae::GameObject* CreatePlayer(dae::Scene& scene, int playerId);
 
         std::vector<PlatSection> m_Sections;
@@ -90,5 +101,12 @@ namespace BurgerTime
 
         void OnLevelComplete();
         bool m_LevelComplete{ false };
+
+        dae::GameObject* CreatePlayer2(dae::Scene& scene);
+        dae::GameObject* CreatePlayerDog(dae::Scene& scene);
+
+        Player* m_pPlayer2{ nullptr };
+        PlayerDog* m_pPlayerDog{ nullptr };
+        GameMode   m_GameMode{ GameMode::SinglePlayer };
     };
 }

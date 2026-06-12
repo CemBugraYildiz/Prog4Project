@@ -13,6 +13,7 @@
 #include "EngineTime.h"
 #include "GameConfig.h"
 #include "Enemy.h"
+#include "PlayerDog.h"
 
 
 namespace BurgerTime
@@ -56,8 +57,6 @@ namespace BurgerTime
 
     void Player::OnDetach()
     {
-        std::cout << "Player " << m_PlayerId << " detached\n";
-
         if (m_CurrentState)
         {
             m_CurrentState->OnExit(this);
@@ -313,6 +312,23 @@ namespace BurgerTime
                 enemy->OnPepperHit();
         }
 
+        auto* dogGO = LevelManager::GetInstance().GetPlayerDogObject();
+        if (dogGO)
+        {
+            auto* dog = dogGO->GetComponent<PlayerDog>();
+            if (dog)
+            {
+                auto ePos = dogGO->GetWorldPosition();
+                if (ePos.x + Config::ENEMY_WIDTH > pepperLeft &&
+                    ePos.x                         < pepperRight &&
+                    ePos.y + Config::ENEMY_HEIGHT  > pepperTop &&
+                    ePos.y < pepperBot)
+                {
+                    dog->OnPepperHit();
+                }
+            }
+        }
+
         dae::Event evt;
         evt.type = dae::EventType::PepperUsed;
         evt.playerId = m_PlayerId;
@@ -327,7 +343,6 @@ namespace BurgerTime
         m_IsInvincible = true;
         m_InvincibleTimer = INVINCIBLE_DURATION;
 
-        std::cout << "Player " << m_PlayerId << " took damage!\n";
 
         auto* health = GetOwner()->GetComponent<dae::HealthComponent>();
         if (health)
@@ -351,7 +366,6 @@ namespace BurgerTime
 
     void Player::Reset()
     {
-        std::cout << "Player " << m_PlayerId << " respawning...\n";
 
         GetOwner()->SetPosition(m_SpawnPosition.x, m_SpawnPosition.y);
         m_PepperCount = 5;
@@ -365,9 +379,7 @@ namespace BurgerTime
         dae::EventQueue::GetInstance().QueueEvent(evt);
     }
 
-    // ============================================
     // GETTERS
-    // ============================================
     glm::vec2 Player::GetPosition() const
     {
         auto pos = GetOwner()->GetWorldPosition();
@@ -390,9 +402,7 @@ namespace BurgerTime
         return m_CurrentState ? m_CurrentState->CanUsePepper() : false;
     }
 
-    // ============================================
     // COLLISION QUERIES
-    // ============================================
     bool Player::IsOnPlatform() const
     {
         auto pos = GetPosition();
@@ -416,9 +426,7 @@ namespace BurgerTime
             position.y >= minY && position.y <= maxY;
     }
 
-    // ============================================
     // STATE MANAGEMENT
-    // ============================================
     void Player::TransitionTo(std::unique_ptr<PlayerState> newState)
     {
         if (!newState) return;
@@ -436,9 +444,7 @@ namespace BurgerTime
         }
     }
 
-    // ============================================
     // ANIMATION
-    // ============================================
     void Player::PlayAnimation(const std::string& animName)
     {
         if (m_AnimationComp)

@@ -24,9 +24,7 @@ namespace BurgerTime
         Stop();
     }
 
-    // ============================================
     // UPDATE
-    // ============================================
     void AnimationComponent::Update()
     {
         if (!IsActive() || !m_IsPlaying || !m_CurrentClip) return;
@@ -50,21 +48,12 @@ namespace BurgerTime
                     m_CurrentFrame = m_CurrentClip->frameCount - 1; // Stay on last frame
                     m_HasFinished = true;
                     m_IsPlaying = false;
-
-                    std::cout << "Animation '" << m_CurrentAnimationName << "' finished\n";
-
-                    // TODO: Fire event (Observer pattern)
-                    // dae::Event animEndEvent;
-                    // animEndEvent.type = EventType::AnimationFinished;
-                    // EventQueue::GetInstance().QueueEvent(animEndEvent);
                 }
             }
         }
     }
 
-    // ============================================
     // RENDER
-    // ============================================
     void AnimationComponent::Render() const
     {
         if (!IsActive() || !m_CurrentTexture || !m_CurrentClip) return;
@@ -82,10 +71,10 @@ namespace BurgerTime
         int col = m_CurrentFrame % m_CurrentClip->columns;
 
         SDL_FRect srcRect{
-            col * frameWidth,
-            row * frameHeight,
-            frameWidth,
-            frameHeight
+            static_cast<float>(col * frameWidth),
+            static_cast<float>(row * frameHeight),
+            static_cast<float>(frameWidth),
+            static_cast<float>(frameHeight)
         };
 
         // Get render size from RenderComponent (if exists)
@@ -106,14 +95,10 @@ namespace BurgerTime
         );
     }
 
-    // ============================================
     // ANIMATION CONTROL
-    // ============================================
     void AnimationComponent::AddAnimation(const AnimationClip& clip)
     {
         m_Animations[clip.name] = clip;
-        std::cout << "Added animation: " << clip.name
-            << " (" << clip.frameCount << " frames)\n";
     }
 
     void AnimationComponent::Play(const std::string& animationName, bool forceRestart)
@@ -142,7 +127,6 @@ namespace BurgerTime
         // Reset playback
         ResetAnimation();
 
-        std::cout << "Playing animation: " << animationName << "\n";
     }
 
     void AnimationComponent::Stop()
@@ -163,9 +147,7 @@ namespace BurgerTime
         m_IsPlaying = true;
     }
 
-    // ============================================
     // PRIVATE HELPERS
-    // ============================================
     void AnimationComponent::LoadTexture(const std::string& path)
     {
         try

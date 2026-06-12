@@ -15,6 +15,8 @@
 #include "BurgerPiece.h"
 #include "PepperCloud.h"
 #include "EventQueue.h"
+#include "PlayerDog.h"
+#include "GameMode.h"
 #include <limits>
 #include <iostream>
 #include <queue>
@@ -22,9 +24,7 @@
 
 namespace BurgerTime
 {
-    // ============================================
     // HELPER: Grid to Screen Conversion
-    // ============================================
     glm::vec2 LevelManager::GridToScreen(int gridX, int gridY)
     {
         return glm::vec2{
@@ -38,12 +38,9 @@ namespace BurgerTime
         return GridToScreen(gridPos.x, gridPos.y);
     }
 
-    // ============================================
     // LOAD LEVEL
-    // ============================================
     void LevelManager::LoadLevel(int levelId, dae::Scene& scene)
     {
-        std::cout << "\n=== Loading Level " << levelId << " ===\n";
         m_pScene = &scene;
         // Unload previous
         UnloadCurrentLevel(scene);
@@ -67,14 +64,19 @@ namespace BurgerTime
         CreateBurgers(scene);
         
 
-        CreatePlayer(scene, 0); // Player 1
+        CreatePlayer(scene, 0);
+
+        if (m_GameMode == GameMode::CoOp)
+            CreatePlayer2(scene);
+        else if (m_GameMode == GameMode::Versus)
+            CreatePlayerDog(scene);
+
         BuildNavGraph();
         CreateEnemies(scene);
 
         m_LevelComplete = false;
         dae::EventQueue::GetInstance().AddListener(dae::EventType::LevelCompleted, this);
 
-        std::cout << "Level " << levelId << " loaded\n\n";
     }
 
     void LevelManager::UnloadCurrentLevel(dae::Scene& scene)
@@ -86,6 +88,8 @@ namespace BurgerTime
         m_CurrentLevelData.reset();
         m_CurrentLevelId = 0;
         m_pPlayer1 = nullptr;
+        m_pPlayer2 = nullptr;
+        m_pPlayerDog = nullptr;
         m_BurgerPieces.clear();
         m_Enemies.clear();
 
@@ -103,7 +107,7 @@ namespace BurgerTime
         player->SetPosition(spawnPos.x, spawnPos.y);
         player->AddComponent<AnimationComponent>();
         player->AddComponent<Player>(playerId);
-        player->AddComponent<dae::HealthComponent>(playerId, 1, 3);
+        player->AddComponent<dae::HealthComponent>(playerId, 1, 4);
         player->AddComponent<dae::ScoreComponent>(playerId);
 
         m_pPlayer1 = player->GetComponent<Player>();
@@ -111,26 +115,72 @@ namespace BurgerTime
         scene.Add(std::move(player));
         return playerPtr;
     }
+    dae::GameObject* LevelManager::CreatePlayer2(dae::Scene& scene)
+    {
+        if (!m_CurrentLevelData) return nullptr;
+
+        glm::vec2 spawnPos = GridToScreen(m_CurrentLevelData->peterJrSpawn);
+        spawnPos.y -= Config::PLAYER_HEIGHT;
+
+        auto player = std::make_unique<dae::GameObject>();
+        player->SetPosition(spawnPos.x, spawnPos.y);
+        player->AddComponent<AnimationComponent>();
+        player->AddComponent<Player>(1);                     
+        player->AddComponent<dae::HealthComponent>(1, 1, 4);
+        player->AddComponent<dae::ScoreComponent>(1);
+
+        m_pPlayer2 = player->GetComponent<Player>();
+        auto* ptr = player.get();
+        scene.Add(std::move(player));
+        return ptr;
+    }
+
+    dae::GameObject* LevelManager::CreatePlayerDog(dae::Scene& scene)
+    {
+        if (!m_CurrentLevelData) return nullptr;
+
+        glm::vec2 spawnPos = GridToScreen(m_CurrentLevelData->playerDogSpawn);
+        spawnPos.y -= Config::ENEMY_HEIGHT;
+
+        auto dog = std::make_unique<dae::GameObject>();
+        dog->SetPosition(spawnPos.x, spawnPos.y);
+        dog->AddComponent<AnimationComponent>();
+        dog->AddComponent<PlayerDog>();
+
+        m_pPlayerDog = dog->GetComponent<PlayerDog>();
+
+        if (m_pPlayer1)
+            m_pPlayerDog->SetPlayerTarget(m_pPlayer1);
+
+        auto* ptr = dog.get();
+        scene.Add(std::move(dog));
+        return ptr;
+    }
 
     dae::GameObject* LevelManager::GetPlayer1Object() const
     {
         return m_pPlayer1 ? m_pPlayer1->GetOwner() : nullptr;
     }
 
+    dae::GameObject* LevelManager::GetPlayer2Object() const
+    {
+        return m_pPlayer2 ? m_pPlayer2->GetOwner() : nullptr;
+    }
+
+    dae::GameObject* LevelManager::GetPlayerDogObject() const
+    {
+        return m_pPlayerDog ? m_pPlayerDog->GetOwner() : nullptr;
+    }
+
     void LevelManager::CreatePlatforms(dae::Scene& scene)
     {
         if (!m_CurrentLevelData) return;
 
-        std::cout << "\n=== Creating Platforms ===\n";
 
         for (size_t i = 0; i < std::min(m_CurrentLevelData->platforms.size(), size_t(5)); ++i)
         {
             const auto& pos = m_CurrentLevelData->platforms[i];
             auto screenPos = GridToScreen(pos);
-
-            std::cout << "Platform " << i
-                << ": Grid(" << pos.x << ", " << pos.y << ")"
-                << " -> Screen(" << screenPos.x << ", " << screenPos.y << ")\n";
 
             auto platform = std::make_unique<dae::GameObject>();
             platform->SetPosition(screenPos.x, screenPos.y);
@@ -156,7 +206,6 @@ namespace BurgerTime
             scene.Add(std::move(platform));
         }
 
-        std::cout << "... Created " << m_CurrentLevelData->platforms.size() << " platforms\n";
     }
 
     void LevelManager::CreateLadders(dae::Scene& scene)
@@ -176,23 +225,16 @@ namespace BurgerTime
             scene.Add(std::move(ladder));
         }
 
-        std::cout << "Created " << m_CurrentLevelData->ladders.size() << " ladders\n";
     }
 
     void LevelManager::CreatePlates(dae::Scene& scene)
     {
         if (!m_CurrentLevelData) return;
 
-        std::cout << "\n=== Creating Plates ===\n";
-
         for (size_t i = 0; i < m_CurrentLevelData->plates.size(); ++i)
         {
             const auto& pos = m_CurrentLevelData->plates[i];
             auto screenPos = GridToScreen(pos);
-
-            std::cout << "Plate " << i
-                << ": Grid(" << pos.x << ", " << pos.y << ")"
-                << " -> Screen(" << screenPos.x << ", " << screenPos.y << ")\n";
 
             auto plate = std::make_unique<dae::GameObject>();
             plate->SetPosition(screenPos.x, screenPos.y);
@@ -200,22 +242,14 @@ namespace BurgerTime
             auto* render = plate->AddComponent<dae::RenderComponent>("BurgerTime/World/plate.png");
             render->SetCustomSize(Config::PLATE_WIDTH, Config::PLATE_HEIGHT);
 
-            // Test: Try different pivot points
-            // render->SetPivot(dae::PivotPoint::TopLeft);      // Default
-            // render->SetPivot(dae::PivotPoint::BottomLeft);   // Test
-            // render->SetPivot(dae::PivotPoint::Center);       // Test
-
             scene.Add(std::move(plate));
         }
 
-        std::cout << "Created " << m_CurrentLevelData->plates.size() << " plates\n";
     }
 
     void LevelManager::CreateBurgers(dae::Scene& scene)
     {
         if (!m_CurrentLevelData) return;
-
-        std::cout << "\n=== Creating Burger Pieces ===\n";
 
         // TOP BUNS
         for (size_t i = 0; i < m_CurrentLevelData->topBuns.size(); ++i)
@@ -301,14 +335,6 @@ namespace BurgerTime
             scene.Add(std::move(burgerPiece));
         }
 
-        int total = m_CurrentLevelData->topBuns.size() +
-            m_CurrentLevelData->lettuces.size() +
-            m_CurrentLevelData->patties.size() +
-            m_CurrentLevelData->tomatoes.size() +
-            m_CurrentLevelData->cheeses.size() +
-            m_CurrentLevelData->bottomBuns.size();
-
-        std::cout << "Created " << total << " burger pieces\n";
     }
 
 
@@ -334,12 +360,9 @@ namespace BurgerTime
             enemy->SetPosition(screenPos.x, screenPos.y);
 
             auto* enemyComp = enemy->AddComponent<Enemy>(type);
-            if (m_pPlayer1)
-                enemyComp->SetPlayerTarget(m_pPlayer1);
             if (enemyComp) m_Enemies.push_back(enemyComp);
             scene.Add(std::move(enemy));
         }
-        std::cout << "Created " << m_CurrentLevelData->enemySpawns.size() << " enemies\n";
     }
 
     bool LevelManager::IsOnPlatform(float x, float y) const
@@ -622,10 +645,54 @@ namespace BurgerTime
         for (auto* enemy : m_Enemies)
             if (enemy) enemy->Freeze();
 
+        if (m_pPlayerDog) m_pPlayerDog->Freeze();
+
         if (m_pPlayer1)
             m_pPlayer1->TransitionToVictory();
+        if (m_pPlayer2)
+            m_pPlayer2->TransitionToVictory();
 
         dae::ServiceLocator::GetSoundSystem().StopMusic();
         dae::ServiceLocator::GetSoundSystem().Play(dae::SOUND_WIN, 1.0f);
+    }
+
+    int LevelManager::GetNearestSection(float x, float y) const
+    {
+        const float feetY = y + Config::PLAYER_HEIGHT;
+        const float xTol = static_cast<float>(Config::TILE_SIZE);
+        int   bestId = -1;
+        float bestDist = std::numeric_limits<float>::max();
+
+        for (const auto& sec : m_Sections)
+        {
+            if (x < sec.xMin - xTol || x > sec.xMax + xTol) continue;
+            float dist = std::abs(feetY - sec.surfaceY);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestId = sec.id;
+            }
+        }
+        return bestId;
+    }
+    int LevelManager::GetNearestSectionExcluding(float x, float y, int excludeId) const
+    {
+        const float feetY = y + Config::PLAYER_HEIGHT;
+        const float xTol = static_cast<float>(Config::TILE_SIZE);
+        int   bestId = -1;
+        float bestDist = std::numeric_limits<float>::max();
+
+        for (const auto& sec : m_Sections)
+        {
+            if (sec.id == excludeId) continue;
+            if (x < sec.xMin - xTol || x > sec.xMax + xTol) continue;
+            float dist = std::abs(feetY - sec.surfaceY);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestId = sec.id;
+            }
+        }
+        return bestId;
     }
 }

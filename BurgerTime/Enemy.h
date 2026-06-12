@@ -7,7 +7,6 @@
 namespace BurgerTime
 {
     class Enemy;
-    class Player;
     class AnimationComponent;
 
     enum class EnemyType { Egg, Pickle, Sausage };
@@ -114,7 +113,6 @@ namespace BurgerTime
         void SetFacingRight(bool right);
         void DestroyEnemy();
 
-        void SetPlayerTarget(Player* player) { m_pPlayer = player; }
 
         glm::vec2 GetPosition() const;
         glm::vec2 GetPlayerPosition() const;
@@ -126,7 +124,6 @@ namespace BurgerTime
 
     private:
         std::unique_ptr<EnemyState> m_CurrentState;
-        Player* m_pPlayer{ nullptr };
         AnimationComponent* m_AnimationComp{ nullptr };
         EnemyType m_EnemyType{ EnemyType::Egg };
 

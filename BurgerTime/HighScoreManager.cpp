@@ -21,6 +21,7 @@ namespace BurgerTime
     void HighScoreManager::Save() const
     {
         std::ofstream f(FILE_PATH);
+        if (!f) return;
         for (const auto& e : m_Entries)
             f << e.name << " " << e.score << "\n";
     }

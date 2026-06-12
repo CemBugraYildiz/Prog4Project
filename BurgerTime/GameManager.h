@@ -1,6 +1,7 @@
 #pragma once
 #include "Singleton.h"
 #include "IEventListener.h"
+#include "GameMode.h" 
 
 namespace dae { class Scene; }
 
@@ -20,7 +21,7 @@ namespace BurgerTime
         void OnEvent(const dae::Event& event) override;
 
         void ShowMainMenu();
-        void StartGame(int levelId = 1);
+        void StartGame(int levelId = 1, GameMode mode = GameMode::SinglePlayer);
         void LoadNextLevel();
         void ShowGameOver(int score);
         void ShowHighScoreEntry(int score);
@@ -29,6 +30,8 @@ namespace BurgerTime
         void ToggleSound();
         bool IsSoundEnabled() const { return m_SoundEnabled; }
         int  GetCurrentLevel() const { return m_CurrentLevel; }
+
+        GameMode GetGameMode() const { return m_GameMode; }
 
     private:
         friend class dae::Singleton<GameManager>;
@@ -46,6 +49,7 @@ namespace BurgerTime
         dae::Scene* m_pScene{ nullptr };
         GameScreen   m_CurrentScreen{ GameScreen::MainMenu };
         int          m_CurrentLevel{ 1 };
+        GameMode m_GameMode{ GameMode::SinglePlayer };
         bool         m_SoundEnabled{ true };
     };
 }

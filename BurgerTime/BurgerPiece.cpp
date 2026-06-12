@@ -7,6 +7,7 @@
 #include "EngineTime.h"
 #include "EventQueue.h"
 #include "Enemy.h"
+#include "PlayerDog.h"
 #include <iostream>
 
 namespace BurgerTime
@@ -70,6 +71,9 @@ namespace BurgerTime
         {
             auto* player1 = LevelManager::GetInstance().GetPlayer1();
             if (player1) CheckPlayerWalkOver(player1);
+
+            auto* player2 = LevelManager::GetInstance().GetPlayer2();
+            if (player2) CheckPlayerWalkOver(player2);
         }
 
         if (m_IsFalling && !m_IsLanded)
@@ -95,6 +99,23 @@ namespace BurgerTime
                 }
             }
 
+            auto* dogGO = LevelManager::GetInstance().GetPlayerDogObject();
+            if (dogGO)
+            {
+                auto* dog = dogGO->GetComponent<PlayerDog>();
+                if (dog)
+                {
+                    auto ePos = dogGO->GetWorldPosition();
+                    if (bRight > ePos.x &&
+                        bLeft   < ePos.x + Config::ENEMY_WIDTH &&
+                        bBottom > ePos.y &&
+                        bTop < ePos.y)
+                    {
+                        dog->OnBurgerCrush();
+                    }
+                }
+            }
+
             float newY = currentPos.y + m_FallSpeed * dae::EngineTime::GetDeltaTime();
 
             if (newY >= m_TargetY)
@@ -117,7 +138,7 @@ namespace BurgerTime
                     GetOwner()->SetPosition(currentPos.x, finalY);
                     m_IsLanded = true;
 
-                    auto* player = LevelManager::GetInstance().GetPlayer1();
+                    /*auto* player = LevelManager::GetInstance().GetPlayer1();*/
                     if (player) player->AddScore(50);
 
                     if (LevelManager::GetInstance().IsLevelComplete())

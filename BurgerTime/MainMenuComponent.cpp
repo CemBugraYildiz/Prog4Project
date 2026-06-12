@@ -1,6 +1,7 @@
 #include "MainMenuComponent.h"
 #include "GameManager.h"
 #include "TextComponent.h"
+#include "GameMode.h"
 #include <algorithm>
 
 namespace BurgerTime
@@ -20,8 +21,12 @@ namespace BurgerTime
 
     void MainMenuComponent::Confirm()
     {
-        if (m_Selected == 0)
-            GameManager::GetInstance().StartGame(1);
+        switch (m_Selected)
+        {
+        case 0: GameManager::GetInstance().StartGame(1, GameMode::SinglePlayer); break;
+        case 1: GameManager::GetInstance().StartGame(1, GameMode::CoOp); break;
+        case 2: GameManager::GetInstance().StartGame(1, GameMode::Versus); break;
+        }
     }
 
     void MainMenuComponent::UpdateVisuals()

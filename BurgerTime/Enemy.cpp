@@ -54,7 +54,7 @@ namespace BurgerTime
             break;
         }
 
-        if (!onPlat && !onLadder && m_Phase != Phase::Climbing)
+        if (!onPlat && m_Phase != Phase::Climbing)
             enemy->Move(0.0f, 200.0f * dt);
 
         CheckPlayerCollision(enemy, ep);
@@ -153,6 +153,14 @@ namespace BurgerTime
         auto& lm = LevelManager::GetInstance();
         int playerSect = lm.GetEntitySection(pp.x, pp.y);
 
+        if (playerSect < 0)
+        {
+            int enemySect = lm.GetEntitySection(ep.x, ep.y);
+            playerSect = lm.GetNearestSection(pp.x, pp.y);
+            if (playerSect == enemySect)
+                playerSect = lm.GetNearestSectionExcluding(pp.x, pp.y, enemySect);
+        }
+
         if (playerSect >= 0 && playerSect != m_LastPlayerSection)
             RebuildPath(ep, pp);
 
@@ -172,6 +180,14 @@ namespace BurgerTime
 
         int enemySect = lm.GetEntitySection(ep.x, ep.y);
         int playerSect = lm.GetEntitySection(pp.x, pp.y);
+
+        if (playerSect < 0)
+        {
+            playerSect = lm.GetNearestSection(pp.x, pp.y);
+            if (playerSect == enemySect)
+                playerSect = lm.GetNearestSectionExcluding(pp.x, pp.y, enemySect);
+        }
+
         m_LastPlayerSection = playerSect;
 
         if (enemySect < 0 || playerSect < 0 || enemySect == playerSect) return;
@@ -192,20 +208,25 @@ namespace BurgerTime
         }
     }
 
-    void NormalState::CheckPlayerCollision(Enemy* enemy, const glm::vec2& ep)
+    void NormalState::CheckPlayerCollision(Enemy* /*enemy*/ , const glm::vec2& ep)
     {
-        auto* player = LevelManager::GetInstance().GetPlayer1();
-        if (!player) return;
+        auto& lm = LevelManager::GetInstance();
 
-        auto pPos = player->GetPosition();
-        if (
-            pPos.x < ep.x + Config::ENEMY_WIDTH &&
-            pPos.x + Config::PLAYER_WIDTH > ep.x &&
-            pPos.y < ep.y + Config::ENEMY_HEIGHT &&
-            pPos.y + Config::PLAYER_HEIGHT > ep.y)
-        {
-            player->TakeDamage();
-        }
+        auto TryHit = [&](Player* player)
+            {
+                if (!player) return;
+                auto pPos = player->GetPosition();
+                if (pPos.x < ep.x + Config::ENEMY_WIDTH &&
+                    pPos.x + Config::PLAYER_WIDTH  > ep.x &&
+                    pPos.y < ep.y + Config::ENEMY_HEIGHT &&
+                    pPos.y + Config::PLAYER_HEIGHT > ep.y)
+                {
+                    player->TakeDamage();
+                }
+            };
+
+        TryHit(lm.GetPlayer1());
+        TryHit(lm.GetPlayer2());
     }
 
 
@@ -402,9 +423,21 @@ namespace BurgerTime
 
     glm::vec2 Enemy::GetPlayerPosition() const
     {
-        if (m_pPlayer)
-            return m_pPlayer->GetPosition();
-        return { 320.0f, 352.0f };
+        auto& lm = LevelManager::GetInstance();
+        auto* p1 = lm.GetPlayer1();
+        auto* p2 = lm.GetPlayer2();
+
+        bool p1ok = p1 && p1->IsAlive();
+        bool p2ok = p2 && p2->IsAlive();
+
+        if (!p1ok && !p2ok) return { 320.f, 352.f };
+        if (!p1ok) return p2->GetPosition();
+        if (!p2ok) return p1->GetPosition();
+
+        auto ep = GetPosition();
+        float d1 = glm::length(p1->GetPosition() - ep);
+        float d2 = glm::length(p2->GetPosition() - ep);
+        return (d1 <= d2) ? p1->GetPosition() : p2->GetPosition();
     }
 
     int Enemy::GetPointValue() const

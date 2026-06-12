@@ -13,8 +13,8 @@ namespace BurgerTime
 
         virtual void OnEnter(Player*) {}
         virtual void OnExit(Player*) {}
-        virtual std::unique_ptr<PlayerState> Update(Player*, float deltaTime) { return nullptr; }
-        virtual std::unique_ptr<PlayerState> HandleInput(Player*, float dx, float dy) { return nullptr; }
+        virtual std::unique_ptr<PlayerState> Update(Player*, float deltaTime) { (void)deltaTime; return nullptr; }
+        virtual std::unique_ptr<PlayerState> HandleInput(Player*, float /*dx*/, float /*dy*/) { return nullptr; }
 
         virtual bool CanMove() const { return true; }
         virtual bool CanUsePepper() const { return true; }
@@ -39,7 +39,6 @@ namespace BurgerTime
         std::unique_ptr<PlayerState> HandleInput(Player* player, float dx, float dy) override;
 
     private:
-        float m_WalkTimer{ 0.0f };
     };
 
     // CLIMBING STATE
