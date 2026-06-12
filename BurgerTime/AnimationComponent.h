@@ -14,14 +14,14 @@ namespace BurgerTime
 {
     struct AnimationClip
     {
-        std::string name;           // "Idle", "Walk", "Climb", etc.
-        std::string texturePath;    // "BurgerTime/PeterPepper/Peter_Walk.png"
-        int frameCount;             // 3 (1x3 sprite sheet için)
-        int rows;                   // 1
-        int columns;                // 3
-        float frameTime;            // 0.1f = 10 FPS, 0.05f = 20 FPS
-        bool loop;                  // true = tekrarla, false = bir kez oynat
-        bool flipX;                 // Sprite'ý ters çevir
+        std::string name;           
+        std::string texturePath;    
+        int frameCount;             
+        int rows;                   
+        int columns;                
+        float frameTime;           
+        bool loop;                  
+        bool flipX;                 
     };
 
     // ANIMATION COMPONENT

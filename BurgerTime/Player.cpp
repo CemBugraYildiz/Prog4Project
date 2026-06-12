@@ -18,26 +18,19 @@
 
 namespace BurgerTime
 {
-    // ============================================
     // CONSTRUCTOR
-    // ============================================
     Player::Player(dae::GameObject* owner, int playerId)
         : Component(owner)
         , m_PlayerId(playerId)
         , m_CurrentState(std::make_unique<PlayerIdleState>())
     {
     }
-    // ============================================
     // DESTRUCTOR
-    // ============================================
     Player::~Player()
     {
-        // PlayerState destructor burada çaðrýlýr
-        // PlayerState.h include edildiði için artýk complete type
+		// PlayerState destructor calls here, but since we only have unique_ptr to PlayerState, we don't need to do anything special here.
     }
-    // ============================================
     // LIFECYCLE
-    // ============================================
     void Player::OnAttach()
     {
         m_SpawnPosition = GetPosition();
@@ -67,9 +60,7 @@ namespace BurgerTime
     {
         if (!IsActive()) return;
 
-        // ============================================
-        // HAREKET ALGILAMA
-        // ============================================
+		// MOVEMENT & INPUT HANDLING
         glm::vec2 currentPosition = GetPosition();
         glm::vec2 delta = currentPosition - m_LastPosition;
 
@@ -81,7 +72,7 @@ namespace BurgerTime
             // Normalize direction for state input
             glm::vec2 direction = glm::normalize(delta);
 
-            // State'e input bildir (dx, dy non-zero = moving)
+            // Notify state of input (dx, dy non-zero = moving)
             if (m_CurrentState)
             {
                 auto nextState = m_CurrentState->HandleInput(this, direction.x * 100.f, direction.y * 100.f);
@@ -134,9 +125,7 @@ namespace BurgerTime
                 m_IsInvincible = false;
         }
 
-        // ============================================
-        // STATE UPDATE (time-based state changes)
-        // ============================================
+        // STATE UPDATE 
         if (m_CurrentState)
         {
             auto nextState = m_CurrentState->Update(this, dae::EngineTime::GetDeltaTime());
@@ -153,9 +142,7 @@ namespace BurgerTime
         // Rendering handled by AnimationComponent
     }
 
-    // ============================================
     // SETUP ANIMATIONS
-    // ============================================
     void Player::SetupAnimations()
     {
         if (!m_AnimationComp) return;
@@ -229,9 +216,7 @@ namespace BurgerTime
         m_AnimationComp->Play("Idle");
     }
 
-    // ============================================
     // PUBLIC API
-    // ============================================
     void Player::Move(float dx, float dy, float deltaTime)
     {
         if (!CanMove()) return;

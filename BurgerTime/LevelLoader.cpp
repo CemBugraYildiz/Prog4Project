@@ -19,9 +19,7 @@ namespace BurgerTime
             return nullptr;
         }
 
-        // ============================================
         // PARSE JSON ARRAY
-        // ============================================
         IStreamWrapper isw(file);
         Document doc;
 
@@ -44,9 +42,7 @@ namespace BurgerTime
         levelData->levelId = levelId;
         levelData->name = "Level " + std::to_string(levelId);
 
-        // ============================================
         // PARSE EACH OBJECT TYPE
-        // ============================================
         for (SizeType i = 0; i < doc.Size(); i++)
         {
             const auto& obj = doc[i];
@@ -61,9 +57,7 @@ namespace BurgerTime
 
             const auto& positions = obj["positions"];
 
-            // ============================================
             // PARSE POSITIONS
-            // ============================================
             if (type == "platform")
             {
                 for (SizeType j = 0; j < positions.Size(); j++)

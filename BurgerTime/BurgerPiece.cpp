@@ -32,9 +32,6 @@ namespace BurgerTime
     {
         std::string baseName = GetSpriteBaseName();
 
-        // Parent GameObject position is already in SCREEN SPACE (GridToScreen applied)
-        // We just need RELATIVE offset for segments
-
         const float segmentWidth = Config::BURGER_SEGMENT_WIDTH;
 
         for (int i = 0; i < 4; ++i)
@@ -138,7 +135,6 @@ namespace BurgerTime
                     GetOwner()->SetPosition(currentPos.x, finalY);
                     m_IsLanded = true;
 
-                    /*auto* player = LevelManager::GetInstance().GetPlayer1();*/
                     if (player) player->AddScore(50);
 
                     if (LevelManager::GetInstance().IsLevelComplete())
@@ -170,14 +166,12 @@ namespace BurgerTime
         // Segments render themselves via RenderComponent
     }
 
-    // ============================================
     // PLAYER INTERACTION
-    // ============================================
     void BurgerPiece::OnPlayerWalkOver(int segmentIndex)
     {
         if (segmentIndex < 0 || segmentIndex >= 4) return;
-        if (m_SegmentWalked[segmentIndex]) return; // Already walked
-        if (m_IsFalling || m_IsLanded) return; // Can't walk on falling piece
+        if (m_SegmentWalked[segmentIndex]) return;
+        if (m_IsFalling || m_IsLanded) return; 
 
         std::cout << "Player walked on segment " << segmentIndex << "\n";
 
@@ -218,9 +212,7 @@ namespace BurgerTime
             << (m_TargetIsPlate ? " [PLATE]" : " [platform]") << "\n";
     }
 
-    // ============================================
     // HELPER METHODS
-    // ============================================
     std::string BurgerPiece::GetSpriteBaseName() const
     {
         switch (m_Type)

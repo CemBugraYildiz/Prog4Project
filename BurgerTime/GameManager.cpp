@@ -295,7 +295,6 @@ namespace BurgerTime
 
         // Confirm main menu
         auto compGO = std::make_unique<dae::GameObject>();
-        // Reuse a minimal wrapper using FuncCommand
         m_pScene->Add(std::move(compGO));
 
         auto& input = dae::InputManager::GetInstance();
@@ -312,19 +311,19 @@ namespace BurgerTime
 
         //  Player 1 
         auto livesGO = std::make_unique<dae::GameObject>();
-        livesGO->SetPosition(10.f, 55.f);
+        livesGO->SetPosition(10.f, 0.f);
         livesGO->AddComponent<dae::TextComponent>("", font, SDL_Color{ 255, 255, 255, 255 });
         livesGO->AddComponent<dae::LivesDisplayComponent>(0, 4);
         m_pScene->Add(std::move(livesGO));
 
         auto scoreGO = std::make_unique<dae::GameObject>();
-        scoreGO->SetPosition(10.f, 80.f);
+        scoreGO->SetPosition(260.f, 0.f);
         scoreGO->AddComponent<dae::TextComponent>("", font, SDL_Color{ 255, 255, 255, 255 });
         scoreGO->AddComponent<dae::ScoreDisplayComponent>(0, 0);
         m_pScene->Add(std::move(scoreGO));
 
         auto pepperGO = std::make_unique<dae::GameObject>();
-        pepperGO->SetPosition(10.f, 105.f);
+        pepperGO->SetPosition(10.f, 25.f);
         pepperGO->AddComponent<dae::TextComponent>("Pepper: 5", font, SDL_Color{ 255, 255, 100, 255 });
         pepperGO->AddComponent<PepperDisplayComponent>(0);
         m_pScene->Add(std::move(pepperGO));
@@ -333,13 +332,13 @@ namespace BurgerTime
         if (m_GameMode == GameMode::CoOp)
         {
             auto p2LivesGO = std::make_unique<dae::GameObject>();
-            p2LivesGO->SetPosition(450.f, 55.f);
+            p2LivesGO->SetPosition(500.f, 0.f);
             p2LivesGO->AddComponent<dae::TextComponent>("", font, SDL_Color{ 100, 255, 200, 255 });
             p2LivesGO->AddComponent<dae::LivesDisplayComponent>(1, 4);
             m_pScene->Add(std::move(p2LivesGO));
 
             auto p2PepperGO = std::make_unique<dae::GameObject>();
-            p2PepperGO->SetPosition(450.f, 80.f);
+            p2PepperGO->SetPosition(500.f, 25.f);
             p2PepperGO->AddComponent<dae::TextComponent>("Pepper: 5", font, SDL_Color{ 100, 255, 200, 255 });
             p2PepperGO->AddComponent<PepperDisplayComponent>(1);
             m_pScene->Add(std::move(p2PepperGO));

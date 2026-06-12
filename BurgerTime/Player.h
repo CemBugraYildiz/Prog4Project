@@ -36,9 +36,7 @@ namespace BurgerTime
         void OnAttach() override;
         void OnDetach() override;
 
-        // ============================================
         // PUBLIC API
-        // ============================================
         void Move(float dx, float dy, float deltaTime);
         void UsePepper();
         void TakeDamage();
@@ -73,9 +71,7 @@ namespace BurgerTime
         void TransitionToVictory();
 
     private:
-        // ============================================
         // MEMBER VARIABLES
-        // ============================================
         int m_PlayerId;
 
         // State

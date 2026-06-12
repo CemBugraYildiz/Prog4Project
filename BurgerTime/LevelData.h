@@ -5,9 +5,7 @@
 
 namespace BurgerTime
 {
-    // ============================================
     // BURGER PIECE TYPE
-    // ============================================
     enum class BurgerPieceType
     {
         TOP_BUN,
@@ -18,9 +16,7 @@ namespace BurgerTime
         PATTY
     };
 
-    // ============================================
     // ENTITY TYPE
-    // ============================================
     enum class EntityType
     {
         PETER,          // Player 1
@@ -29,9 +25,7 @@ namespace BurgerTime
         ENEMY           // AI enemy
     };
 
-    // ============================================
     // TILE-BASED LEVEL DATA
-    // ============================================
     struct LevelData
     {
         int levelId;

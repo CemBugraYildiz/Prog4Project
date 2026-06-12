@@ -41,11 +41,11 @@ namespace BurgerTime
             {
                 if (m_CurrentClip->loop)
                 {
-                    m_CurrentFrame = 0; // Loop back
+                    m_CurrentFrame = 0;
                 }
                 else
                 {
-                    m_CurrentFrame = m_CurrentClip->frameCount - 1; // Stay on last frame
+                    m_CurrentFrame = m_CurrentClip->frameCount - 1; 
                     m_HasFinished = true;
                     m_IsPlaying = false;
                 }
@@ -111,20 +111,14 @@ namespace BurgerTime
             return;
         }
 
-        // Don't restart if already playing (unless forced)
         if (!forceRestart && m_IsPlaying && m_CurrentAnimationName == animationName)
         {
             return;
         }
 
-        // Switch animation
         m_CurrentAnimationName = animationName;
         m_CurrentClip = &it->second;
-
-        // Load texture if different
         LoadTexture(m_CurrentClip->texturePath);
-
-        // Reset playback
         ResetAnimation();
 
     }
