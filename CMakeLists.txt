@@ -234,7 +234,7 @@ add_executable(BurgerTime
   "BurgerTime/Game.cpp"
   "BurgerTime/Enemy.h" 
   "BurgerTime/Enemy.cpp"
- "BurgerTime/PlayerState.h"  "BurgerTime/Player.h" "BurgerTime/Player.cpp" "BurgerTime/PlayerState.cpp"  "BurgerTime/AnimationComponent.h" "BurgerTime/AnimationComponent.cpp" "BurgerTime/UsePepperCommand.h" "BurgerTime/LevelData.h" "BurgerTime/LevelLoader.h" "BurgerTime/LevelLoader.cpp" "BurgerTime/LevelManager.h" "BurgerTime/LevelManager.cpp" "BurgerTime/BurgerPiece.h" "BurgerTime/BurgerPiece.cpp" "BurgerTime/GameConfig.h"    "BurgerTime/PepperCloud.h" "BurgerTime/HighScoreManager.h" "BurgerTime/HighScoreManager.cpp" "BurgerTime/GameManager.h" "BurgerTime/GameManager.cpp" "BurgerTime/MainMenuComponent.h" "BurgerTime/MainMenuComponent.cpp" "BurgerTime/GameOverComponent.h" "BurgerTime/GameOverComponent.cpp" "BurgerTime/HighScoreEntryComponent.h" "BurgerTime/HighScoreEntryComponent.cpp" "BurgerTime/PepperDisplayComponent.h" "BurgerTime/PepperDisplayComponent.cpp" "BurgerTime/GameMode.h" "BurgerTime/PlayerDog.h" "BurgerTime/PlayerDog.cpp")
+ "BurgerTime/PlayerState.h"  "BurgerTime/Player.h" "BurgerTime/Player.cpp" "BurgerTime/PlayerState.cpp"  "BurgerTime/AnimationComponent.h" "BurgerTime/AnimationComponent.cpp" "BurgerTime/UsePepperCommand.h" "BurgerTime/LevelData.h" "BurgerTime/LevelLoader.h" "BurgerTime/LevelLoader.cpp" "BurgerTime/LevelManager.h" "BurgerTime/LevelManager.cpp" "BurgerTime/BurgerPiece.h" "BurgerTime/BurgerPiece.cpp" "BurgerTime/GameConfig.h"    "BurgerTime/PepperCloud.h" "BurgerTime/HighScoreManager.h" "BurgerTime/HighScoreManager.cpp" "BurgerTime/GameManager.h" "BurgerTime/GameManager.cpp" "BurgerTime/MainMenuComponent.h" "BurgerTime/MainMenuComponent.cpp" "BurgerTime/GameOverComponent.h" "BurgerTime/GameOverComponent.cpp" "BurgerTime/HighScoreEntryComponent.h" "BurgerTime/HighScoreEntryComponent.cpp" "BurgerTime/PepperDisplayComponent.h" "BurgerTime/PepperDisplayComponent.cpp" "BurgerTime/GameMode.h" "BurgerTime/PlayerDog.h" "BurgerTime/PlayerDog.cpp" "BurgerTime/EnemySpawner.h" "BurgerTime/EnemySpawner.cpp" "BurgerTime/NavGraph.h" "BurgerTime/NavGraph.cpp" "BurgerTime/CollisionWorld.h" "BurgerTime/CollisionWorld.cpp")
 
 target_link_libraries(BurgerTime PRIVATE Minigin)
 target_include_directories(BurgerTime PRIVATE
@@ -255,9 +255,13 @@ endif()
 if(EMSCRIPTEN)
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
+  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+
   set_target_properties(BurgerTime PROPERTIES
     COMPILE_FLAGS "-sUSE_FREETYPE=1 -sUSE_HARFBUZZ=1 -g"
     LINK_FLAGS "-sUSE_FREETYPE=1 -sUSE_HARFBUZZ=1 -g -sALLOW_MEMORY_GROWTH --preload-file \"${CMAKE_SOURCE_DIR}/Data@/\""
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
   )
 
   add_custom_command(TARGET BurgerTime POST_BUILD

@@ -294,10 +294,10 @@ namespace BurgerTime
 
     void Enemy::OnAttach()
     {
+        LevelManager::GetInstance().RegisterEnemy(this);
         m_AnimationComp = GetOwner()->AddComponent<AnimationComponent>();
         m_AnimationComp->SetRenderSize(Config::ENEMY_WIDTH, Config::ENEMY_HEIGHT);
         SetupAnimations();
-
         if (m_CurrentState)
             m_CurrentState->OnEnter(this);
     }
@@ -445,9 +445,9 @@ namespace BurgerTime
         switch (m_EnemyType)
         {
         case EnemyType::Sausage: return 100;
-        case EnemyType::Pickle:  return 200;
-        case EnemyType::Egg:     return 300;
-        default:                 return 100;
+        case EnemyType::Pickle: return 200;
+        case EnemyType::Egg: return 300;
+        default: return 100;
         }
     }
 

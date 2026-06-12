@@ -124,7 +124,8 @@ namespace BurgerTime
                 if (m_EnemiesCrushedThisFall > 0 && player)
                 {
                     int killScore = (m_EnemiesCrushedThisFall == 1) ? 500 :
-                        (m_EnemiesCrushedThisFall == 2) ? 1000 : 2000;
+                        (m_EnemiesCrushedThisFall == 2) ? 1000 :
+                        (m_EnemiesCrushedThisFall == 3) ? 2000 : 4000;
                     player->AddScore(killScore);
                 }
                 m_EnemiesCrushedThisFall = 0;

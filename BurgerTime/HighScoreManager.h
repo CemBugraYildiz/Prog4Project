@@ -19,8 +19,8 @@ namespace BurgerTime
     private:
         friend class dae::Singleton<HighScoreManager>;
         HighScoreManager() = default;
-        static constexpr int         MAX_ENTRIES = 10;
+        static constexpr int MAX_ENTRIES = 10;
         static constexpr const char* FILE_PATH = "Data/BurgerTime/highscores.dat";
-        std::vector<HighScoreEntry>  m_Entries;
+        std::vector<HighScoreEntry> m_Entries;
     };
 }
