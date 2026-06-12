@@ -20,6 +20,7 @@ namespace dae
         void StopMusic() override;
         void StopAll() override;
         void RegisterSound(SoundId id, const std::string& filePath) override;
+        void SetMuted(bool muted) override;
 
     private:
         class Impl;

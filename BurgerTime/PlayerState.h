@@ -73,7 +73,13 @@ namespace BurgerTime
     {
     public:
         void OnEnter(Player* player) override;
+        std::unique_ptr<PlayerState> Update(Player* player, float deltaTime) override;
         bool CanMove()      const override { return false; }
         bool CanUsePepper() const override { return false; }
+
+    private:
+        float m_Timer{ 0.f };
+        bool  m_Fired{ false };
+        static constexpr float DURATION = 3.0f;
     };
 }

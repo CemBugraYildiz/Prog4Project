@@ -357,6 +357,12 @@ namespace BurgerTime
         m_PepperCount = 5;
 
         TransitionTo(std::make_unique<PlayerIdleState>());
+
+        dae::Event evt;
+        evt.type = dae::EventType::PepperUsed;
+        evt.playerId = m_PlayerId;
+        evt.value = m_PepperCount;
+        dae::EventQueue::GetInstance().QueueEvent(evt);
     }
 
     // ============================================

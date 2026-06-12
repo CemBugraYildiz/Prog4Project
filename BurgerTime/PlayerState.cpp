@@ -3,6 +3,9 @@
 #include "AnimationComponent.h"
 #include "GameObject.h"
 #include "HealthComponent.h"
+#include "Event.h"
+#include "EventQueue.h"
+#include "ScoreComponent.h"
 #include <iostream>
 
 namespace BurgerTime
@@ -117,14 +120,12 @@ namespace BurgerTime
     std::unique_ptr<PlayerState> PlayerDeadState::Update(Player* player, float deltaTime)
     {
         m_DeathTimer += deltaTime;
-
         auto* animComp = player->GetAnimationComponent();
         bool animFinished = animComp ? animComp->HasFinished() : true;
 
         if (animFinished || m_DeathTimer >= m_DeathDuration)
         {
             auto* health = player->GetOwner()->GetComponent<dae::HealthComponent>();
-
             if (health && health->GetLives() > 0)
             {
                 player->Reset();
@@ -132,16 +133,32 @@ namespace BurgerTime
             }
             else
             {
-                std::cout << "Player " << player->GetPlayerId() << " - GAME OVER\n";
+                auto* score = player->GetOwner()->GetComponent<dae::ScoreComponent>();
+                dae::Event evt;
+                evt.type = dae::EventType::GameOver;
+                evt.value = score ? score->GetScore() : 0;
+                dae::EventQueue::GetInstance().QueueEvent(evt);
                 player->SetActive(false);
             }
         }
-
         return nullptr;
     }
 
     void PlayerVictoryState::OnEnter(Player* player)
     {
         player->PlayAnimation("Victory");
+    }
+
+    std::unique_ptr<PlayerState> PlayerVictoryState::Update(Player*, float dt)
+    {
+        m_Timer += dt;
+        if (!m_Fired && m_Timer >= DURATION)
+        {
+            m_Fired = true;
+            dae::Event evt;
+            evt.type = dae::EventType::RequestNextLevel;
+            dae::EventQueue::GetInstance().QueueEvent(evt);
+        }
+        return nullptr;
     }
 }

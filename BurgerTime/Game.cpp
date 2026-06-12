@@ -33,37 +33,38 @@
 //#include "MovementStrategy.h" 
 #include "Minigin.h"
 #include "SceneManager.h"
-#include "ResourceManager.h"
-#include "Scene.h"
-#include "GameObject.h"
-#include "InputManager.h"
-#include "LevelManager.h"
+//#include "ResourceManager.h"
+//#include "Scene.h"
+//#include "GameObject.h"
+//#include "InputManager.h"
+//#include "LevelManager.h"
 #include "GameConfig.h"
+#include "GameManager.h"
 
-// Minigin Components
-#include "TextComponent.h"
-#include "RenderComponent.h"
-#include "HealthComponent.h"
-#include "ScoreComponent.h"
-#include "LivesDisplayComponent.h"
-#include "ScoreDisplayComponent.h"
-#include "FPSComponent.h"
+//// Minigin Components
+//#include "TextComponent.h"
+//#include "RenderComponent.h"
+//#include "HealthComponent.h"
+//#include "ScoreComponent.h"
+//#include "LivesDisplayComponent.h"
+//#include "ScoreDisplayComponent.h"
+//#include "FPSComponent.h"
 
 // Minigin Commands
-#include "MoveCommand.h"
-#include "DamageCommand.h"
-#include "AddScoreCommand.h"
-#include "PlaySoundCommand.h"
+//#include "MoveCommand.h"
+//#include "DamageCommand.h"
+//#include "AddScoreCommand.h"
+//#include "PlaySoundCommand.h"
 
 // Services
-#include "ServiceLocator.h"
-#include "SoundIds.h"
+//#include "ServiceLocator.h"
+//#include "SoundIds.h"
 
 // BurgerTime
-#include "Enemy.h"
-#include "Player.h"
-#include "AnimationComponent.h"
-#include "UsePepperCommand.h"
+//#include "Enemy.h"
+//#include "Player.h"
+//#include "AnimationComponent.h"
+//#include "UsePepperCommand.h"
 
 #include <filesystem>
 #include "BenchmarkPi.h"
@@ -73,6 +74,9 @@ namespace fs = std::filesystem;
 static void load()
 {
 	auto& scene = dae::SceneManager::GetInstance().CreateScene();
+
+	BurgerTime::GameManager::GetInstance().Initialize(scene);
+	BurgerTime::GameManager::GetInstance().ShowMainMenu();
 
 	/*auto go = std::make_unique<dae::GameObject>();
 	go->AddComponent<dae::RenderComponent>("background.png");
@@ -94,58 +98,49 @@ static void load()
 	scene.Add(std::move(titleGO));*/
 
 	// --- FPS on-screen ---
-	// load a small font for the FPS counter
-	auto fpsFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 30);
+	/*auto fpsFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 30);
 	auto fpsGO = std::make_unique<dae::GameObject>();
-	fpsGO->SetPosition(10, 8); // top-left; tweak as needed
-	// attach FPSComponent (owner passed automatically by AddComponent)
+	fpsGO->SetPosition(10, 8);
 	fpsGO->AddComponent<dae::FPSComponent>(fpsFont, SDL_Color{ 255, 255, 255, 255 });
-	scene.Add(std::move(fpsGO));
+	scene.Add(std::move(fpsGO));*/
 
 	// ============================================
    // LOAD LEVEL 1
    // ============================================
-	BurgerTime::LevelManager::GetInstance().LoadLevel(3, scene); 
+	
+	/*BurgerTime::LevelManager::GetInstance().LoadLevel(3, scene); 
 
-	//Instructions
-	auto infoFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);
+	auto infoFont = dae::ResourceManager::GetInstance().LoadFont("Lingua.otf", 20);*/
 
-	auto inst1GO = std::make_unique<dae::GameObject>();
+	/*auto inst1GO = std::make_unique<dae::GameObject>();
 	inst1GO->SetPosition(10.f, 80.f);
 	inst1GO->AddComponent<dae::TextComponent>(
 		"WASD = Move | C = Pepper | K = Damage | Z = Score",
 		infoFont,
 		SDL_Color{ 255, 255, 255, 255 }
 	);
-	scene.Add(std::move(inst1GO));
+	scene.Add(std::move(inst1GO));*/
 
 	
-	
+	/*
 	auto* player1GO = BurgerTime::LevelManager::GetInstance().GetPlayer1Object();
-	// ============================================
-	// UI
-	// ============================================
 	auto p1LivesGO = std::make_unique<dae::GameObject>();
-	p1LivesGO->SetPosition(10.f, 150.f);
+	p1LivesGO->SetPosition(10.f, 0.f);
 	p1LivesGO->AddComponent<dae::TextComponent>("", infoFont, SDL_Color{ 255, 255, 255, 255 });
 	p1LivesGO->AddComponent<dae::LivesDisplayComponent>(0, 3);
 	scene.Add(std::move(p1LivesGO));
 
 	auto p1ScoreGO = std::make_unique<dae::GameObject>();
-	p1ScoreGO->SetPosition(10.f, 175.f);
+	p1ScoreGO->SetPosition(484.f, 0.f);
 	p1ScoreGO->AddComponent<dae::TextComponent>("", infoFont, SDL_Color{ 255, 255, 255, 255 });
 	p1ScoreGO->AddComponent<dae::ScoreDisplayComponent>(0, 0);
 	scene.Add(std::move(p1ScoreGO));
 
-	// ============================================
-	// INPUT BINDINGS
-	// ============================================
 	auto& input = dae::InputManager::GetInstance();
 	input.ClearBindings();
 
 	constexpr float speed = 100.0f;
 
-	// WASD - ComponentMoveCommand<Player> (Player::Move çaðrýlýr)
 	input.BindKeyboardCommand(
 		SDL_SCANCODE_W,
 		dae::InputState::Pressed,
@@ -170,21 +165,18 @@ static void load()
 		std::make_unique<dae::ComponentMoveCommand<BurgerTime::Player>>(player1GO, speed, 0.f)
 	);
 
-	// C - Pepper
 	input.BindKeyboardCommand(
 		SDL_SCANCODE_C,
 		dae::InputState::Down,
 		std::make_unique<BurgerTime::UsePepperCommand>(player1GO)
 	);
 
-	// K - Damage
 	input.BindKeyboardCommand(
 		SDL_SCANCODE_K,
 		dae::InputState::Down,
 		std::make_unique<dae::DamageCommand>(player1GO, 1)
 	);
 
-	// Z - Score
 	input.BindKeyboardCommand(
 		SDL_SCANCODE_Z,
 		dae::InputState::Down,
@@ -197,7 +189,7 @@ static void load()
 	std::cout << "WASD - Move (Component-based)\n";
 	std::cout << "C - Use Pepper\n";
 	std::cout << "K - Take Damage\n";
-	std::cout << "Z - Add Score\n";
+	std::cout << "Z - Add Score\n";*/
 }
 
 int main(int argc, char* argv[]) {

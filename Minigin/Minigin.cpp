@@ -141,7 +141,6 @@ void dae::Minigin::Run(const std::function<void()>& load)
 
 	load();
 
-	ServiceLocator::GetSoundSystem().PlayMusic(dae::MUSIC_GAMEPLAY, 0.5f, true);
 #ifndef __EMSCRIPTEN__
 	// native loop - cap to ~60 FPS to avoid runaway CPU usage and to make timing stable
 	constexpr std::chrono::duration<double, std::milli> targetFrameMs{ 16.6667 };

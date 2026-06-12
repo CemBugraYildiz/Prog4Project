@@ -113,10 +113,16 @@ namespace dae
         {
             if (!m_IsRunning) return;
 
+            if (m_Muted.load() &&
+                (event.type == SoundEventType::Play ||
+                    event.type == SoundEventType::PlayMusic))
+                return;
+
             {
                 std::lock_guard<std::mutex> queueLock(m_QueueMutex);
                 m_EventQueue.push(std::move(event));
             }
+
             m_CondVar.notify_one();
         }
 
@@ -142,6 +148,20 @@ namespace dae
 
             m_AudioMap[id] = audio;
             std::cout << "Registered: " << path << "\n";
+        }
+
+        void SetMuted(bool muted)
+        {
+            m_Muted = muted;
+            if (muted)
+            {
+                {
+                    std::lock_guard<std::mutex> lock(m_QueueMutex);
+                    std::queue<SoundEvent> empty;
+                    std::swap(m_EventQueue, empty);
+                }
+                AddEvent({ SoundEventType::StopAll });
+            }
         }
 
     private:
@@ -372,6 +392,8 @@ namespace dae
 
         std::jthread                m_Thread{};
         std::atomic<bool>           m_IsRunning{ false };
+
+        std::atomic<bool> m_Muted{ false };
     };
 
     SDLSoundSystem::SDLSoundSystem()
@@ -403,5 +425,10 @@ namespace dae
     void SDLSoundSystem::RegisterSound(SoundId id, const std::string& filePath)
     {
         m_pImpl->RegisterSound(id, filePath);
+    }
+
+    void SDLSoundSystem::SetMuted(bool muted)
+    {
+        m_pImpl->SetMuted(muted);
     }
 }

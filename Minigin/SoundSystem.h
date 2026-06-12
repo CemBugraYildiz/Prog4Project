@@ -14,6 +14,7 @@ namespace dae
         virtual void StopMusic() = 0;
         virtual void StopAll() = 0;
         virtual void RegisterSound(SoundId id, const std::string& filePath) = 0;
+        virtual void SetMuted(bool muted) = 0;
     };
 
     class NullSoundSystem final : public SoundSystem
@@ -24,5 +25,6 @@ namespace dae
         void StopMusic() override {}
         void StopAll() override {}
         void RegisterSound(SoundId, const std::string&) override {}
+        void SetMuted(bool) override {}
     };
 }

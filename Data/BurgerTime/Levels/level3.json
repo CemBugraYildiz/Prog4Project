@@ -207,18 +207,18 @@
 		"type": "peterjr",
 		"positions": [
 			[
-				512,
-				480
+				96,
+				320
 			]
 		]
 	},
   {
     "type": "playerdog",
     "positions": [
-      [
-        512,
-        32
-      ]
+			[
+				320,
+				448
+			]
     ]
   },
   {

@@ -404,8 +404,8 @@
     "type": "peterjr",
     "positions": [
       [
-        512,
-        610
+        384,
+        512
       ]
     ]
   },
@@ -413,8 +413,8 @@
     "type": "playerdog",
     "positions": [
       [
-        560,
-        32
+        64,
+        320
       ]
     ]
   },

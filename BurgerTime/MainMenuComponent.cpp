@@ -1,0 +1,36 @@
+#include "MainMenuComponent.h"
+#include "GameManager.h"
+#include "TextComponent.h"
+#include <algorithm>
+
+namespace BurgerTime
+{
+    MainMenuComponent::MainMenuComponent(dae::GameObject* owner) : Component(owner) {}
+
+    void MainMenuComponent::AddOption(dae::TextComponent* normal, dae::TextComponent* selected)
+    {
+        m_Options.push_back({ normal, selected });
+    }
+
+    void MainMenuComponent::Navigate(int delta)
+    {
+        m_Selected = (m_Selected + delta + (int)m_Options.size()) % (int)m_Options.size();
+        UpdateVisuals();
+    }
+
+    void MainMenuComponent::Confirm()
+    {
+        if (m_Selected == 0)
+            GameManager::GetInstance().StartGame(1);
+    }
+
+    void MainMenuComponent::UpdateVisuals()
+    {
+        for (int i = 0; i < (int)m_Options.size(); ++i)
+        {
+            bool sel = (i == m_Selected);
+            if (m_Options[i].normal)   m_Options[i].normal->SetActive(!sel);
+            if (m_Options[i].selected) m_Options[i].selected->SetActive(sel);
+        }
+    }
+}

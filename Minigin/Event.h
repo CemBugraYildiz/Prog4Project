@@ -8,7 +8,9 @@ namespace dae
 		ScoreChanged,
 		PepperUsed,      
 		LevelCompleted,  
-		EnemyKilled
+		EnemyKilled,
+		GameOver,
+		RequestNextLevel
 	};
 
 	struct Event
